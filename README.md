@@ -1,7 +1,7 @@
 # Analog Workbook – Darkroom Log
 
 ![Edition](https://img.shields.io/badge/edition-1.0%20(Nov%202026)-orange)
-![Status](https://img.shields.io/badge/status-in%20development-yellow)
+![Status](https://img.shields.io/badge/status-released-brightgreen)
 ![Formats](https://img.shields.io/badge/formats-PDF%20%7C%20DOCX%20%7C%20JPG-blue)
 ![Sizes](https://img.shields.io/badge/sizes-A5%20%7C%20A4-blue)
 ![Language](https://img.shields.io/badge/language-English-blue)
