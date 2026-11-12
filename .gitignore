@@ -2,6 +2,11 @@
 dist/
 out/
 
+# Drafts and personal finals 
+drafts-content/
+drafts-cover/
+finals/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -28,6 +33,7 @@ desktop.ini
 *.swp
 
 # Font binaries: download them yourself, see fonts/README.md
-# (remove these two lines if you decide to commit the fonts)
 fonts/*.ttf
 fonts/*.otf
+fonts/Caveat/
+fonts/Courier_Prime/
