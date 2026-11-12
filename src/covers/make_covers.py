@@ -71,7 +71,7 @@ TIMES = [2, 4, 6, 8, 10, 12, 14, 16]
 def compose(head_tf, strip_tf, extra='', second=None):
     clip = f"<clipPath id='lit'><polygon points='{CONE}' transform='{head_tf}'/></clipPath>"
     cone = f"<polygon points='{CONE}' fill='#1b1b1b' transform='{head_tf}'/>"
-    note = f"<text x='14' y='6.5' {FONT} font-size='3.2' fill='#707070'>gr 3 · f/8</text>"
+    note = f"<text x='14' y='6.5' {FONT} font-size='3.2' fill='#717171'>gr 3 · f/8</text>"   # own grey value: brighter in the red theme
     s_dark = f"<g transform='{strip_tf}'>{bands(TIMES, DARK)}{note}</g>"
     s_lit = f"<g clip-path='url(#lit)'><g transform='{strip_tf}'>{bands(TIMES, [lighten(c, 22) for c in DARK])}{note}</g></g>"
     sec = ''
@@ -81,12 +81,6 @@ def compose(head_tf, strip_tf, extra='', second=None):
                f"<g clip-path='url(#lit)'><g transform='{second}'>{bands(TIMES, [lighten(c, 18) for c in cols], False)}</g></g>")
     return f"<defs>{clip}</defs>{cone}{extra}<!--S-->{sec}{s_dark}{s_lit}<!--/S--><g transform='{head_tf}'>{head()}</g>" + title()
 
-
-
-import math
-a = 10; x0 = -8; yexit = 190.4
-y0 = yexit - (151 - x0) * math.tan(math.radians(a))
-FRONT_BODY = compose("translate(93,76) rotate(17) scale(0.8)", f"translate({x0},{y0:.1f}) rotate({a}) translate(0,3.5)")
 
 # ---------- FRONT COMPOSITIONS ----------
 STRIP_ANGLE, STRIP_X0, STRIP_EXIT = 10, -8, 190.4      # strip: 10 deg, upper edge leaves right trim edge at y=190.4
@@ -158,13 +152,25 @@ def light(body):
         return re.sub(r"<rect[^>]*fill='#([0-9a-fA-F]{6})'", rep, seg)
     return ''.join(p if p.startswith('<!--S-->') else invert(p) for p in parts)
 
+def red(body):
+    """Safelight theme: dark background, every grey becomes a safelight red of similar lightness."""
+    def rep(m):
+        h = m.group(1)
+        if len(h) == 3: h = ''.join(c*2 for c in h)
+        r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+        if not (r == g == b) or r == 0x0e: return m.group(0)       # keep background
+        if r == 0x71: return '#d02c1e'                             # pencil note on the test strip: brighter
+        return '#%02x%02x%02x' % (min(255, round(r * 1.3)), round(r * 0.2), round(r * 0.14))
+    return re.sub(r"#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b", rep, body)
+
 def page(body, theme, size, bleed):
     s = 1.0 if size == 'A5' else 210 / 148
     bl = 3 if bleed else 0
     Wt, Ht = (148, 210) if size == 'A5' else (210, 297)
     W, H = Wt + 2 * bl, Ht + 2 * bl
-    bg = '#0e0e0e' if theme == 'dark' else '#ffffff'
+    bg = '#ffffff' if theme == 'light' else '#0e0e0e'
     if theme == 'light': body = light(body)
+    if theme == 'red': body = red(body)
     return (f"<svg xmlns='http://www.w3.org/2000/svg' width='{W}mm' height='{H}mm' viewBox='0 0 {W} {H}'>"
             f"<rect width='{W}' height='{H}' fill='{bg}'/><g transform='translate({bl},{bl}) scale({s:.6f}) translate(-3,-3)'>{body}</g></svg>")
 
@@ -172,15 +178,19 @@ backs = {'print': {'ring80': '80 pages · {sz} · ring binding', 'booklet40': '4
          'online': {'': '40 pages · {sz} · for screen &amp; self-print'}}
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'dist', 'covers')
 os.makedirs(OUT, exist_ok=True)
+# optional filter: only build covers whose name contains all given words, e.g.  make_covers.py A5_print_red
+import sys
+FILTER = sys.argv[1:]
 out = []
-for theme in ('dark', 'light'):
+for theme in ('dark', 'light', 'red'):
     for size in ('A5', 'A4'):
         for kind, bleed in (('print', True), ('online', False)):
             base = f"cover_{size}_{kind}_{theme}"
-            jobs = [(f"{base}_front", FRONT if theme == "dark" else FRONT_LIGHT)]
+            jobs = [(f"{base}_front", FRONT_LIGHT if theme == "light" else FRONT)]
             for tag, txt in backs[kind].items():
                 jobs.append((f"{base}_back" + (f"_{tag}" if tag else ''), back(txt.format(sz=size))))
             for name, body in jobs:
+                if not all(f in name for f in FILTER): continue
                 svgf = os.path.join(OUT, f"{name}.svg"); png = os.path.join(OUT, f"{name}.png")
                 open(svgf, 'w').write(page(body, theme, size, bleed))
                 subprocess.run(['rsvg-convert', '-d', '350', '-p', '350', '-f', 'png', '-o', png, svgf], check=True)

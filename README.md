@@ -6,6 +6,7 @@
 ![Sizes](https://img.shields.io/badge/sizes-A5%20%7C%20A4-blue)
 ![Language](https://img.shields.io/badge/language-English-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-yellowgreen)
+![Node.js](https://img.shields.io/badge/node.js-18+-yellowgreen)
 ![Content License](https://img.shields.io/badge/content-CC%20BY--NC--SA%204.0-lightgrey)
 ![Code License](https://img.shields.io/badge/code-AGPL--3.0--or--later-lightgrey)
 
@@ -19,7 +20,7 @@ Made for black & white and RA-4 color printing, with color heads or filter/grade
 
 - **Session log:** two sessions per page, each with a pre-printed session number. Columns for print ID, filtration (C · M · Y or grade), time, aperture and dodge · burn · notes, plus a session notes field. Long sessions simply continue in the next block.
 - **Setup tables:** processes (B/W and RA-4), enlargers & lenses, printing papers.
-- **Indexes:** session index, and in the 80-page versions also a project index.
+- **Indexes:** session index and project index.
 - **Notes pages:** your own darkroom learnings.
 - **Quick references:**
   - f-stop timing table
@@ -27,18 +28,18 @@ Made for black & white and RA-4 color printing, with color heads or filter/grade
   - RA-4 color cast corrections
   - contrast grades on a color head
   - zone system
-- **How-to page:** explains the workbook with example entries. A more extensive 2-page how-to is available separately.
+- **How-to (2 pages):** explains the workbook with example entries. A QR code links to the extended 2-page how-to (A4), which is also available separately.
 
 ## Variants
 
 | | Ring binding | Booklet | Online / self-print |
 |---|---|---|---|
-| **Pages** | 80 + cover | 40 + cover | 40 + 2 cover pages |
+| **Pages** | 80 + cover | 40 + cover | 40 + 2 cover pages (light, dark or red cover) |
 | **A5** | ✓ | ✓ | ✓ |
 | **A4** | ✓ (larger fields, extra columns) | ✓ | ✓ |
 | **Bleed** | 3 mm | 3 mm | none |
 
-Each variant comes as **PDF** (ready to print or upload to a print service) and **Word** (for small edits). Covers come in a dark and a light theme.
+Each variant comes as **PDF** (ready to print or upload to a print service) and **Word** (for small edits). Covers come in a dark, a light and a safelight-red theme.
 
 Languages: English (German planned).
 
@@ -67,7 +68,14 @@ You also need `rsvg-convert` (librsvg) and the fonts listed below. Details are i
 
 ### Workbook interior
 
-The interior generator is in [`src/workbook/`](src/workbook/). *(in progress)*
+```
+npm install
+python3 src/workbook/build_all.py            # all variants
+python3 src/workbook/build_all.py A5_ring    # only matching variants
+python3 src/workbook/preview.py session      # PNG preview of single page types (A5 + A4)
+```
+
+You also need LibreOffice (`soffice`) for the PDF export, `pdfinfo`/`pdftoppm` (poppler) and the covers in `dist/covers` for the online versions. Output goes to `dist/workbook/`. Details are in [`src/workbook/README.md`](src/workbook/README.md).
 
 ### Fonts
 
@@ -85,6 +93,7 @@ analog-workbook-darkroom-log/
 ├── LICENSES/              full license texts
 ├── CHANGELOG.md           editions and changes
 ├── requirements.txt       Python dependencies
+├── package.json           Node.js dependencies (docx, sharp, qrcode)
 ├── assets/previews/       preview images for this README
 ├── fonts/                 font files (see fonts/README.md)
 ├── src/

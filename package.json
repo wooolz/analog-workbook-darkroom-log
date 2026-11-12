@@ -1,0 +1,16 @@
+{
+  "name": "analog-workbook-darkroom-log",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generator for the Darkroom Log printing workbook",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "build": "python3 src/workbook/build_all.py",
+    "covers": "python3 src/covers/make_covers.py"
+  },
+  "dependencies": {
+    "docx": "^9.5.0",
+    "sharp": "^0.33.0",
+    "qrcode": "^1.5.4"
+  }
+}

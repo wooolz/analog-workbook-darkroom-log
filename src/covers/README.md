@@ -4,20 +4,20 @@
 
 ## Output
 
-20 JPG files in `dist/covers/` (relative to the repository root):
+30 JPG files in `dist/covers/` (relative to the repository root):
 
 | | Print (3 mm bleed) | Online / self-print (no bleed) |
 |---|---|---|
 | **A5** | 154 × 216 mm (2123 × 2977 px) | 148 × 210 mm (2039 × 2894 px) |
 | **A4** | 216 × 303 mm (2977 × 4176 px) | 210 × 297 mm (2894 × 4093 px) |
 
-Each size comes in a **dark** and a **light** theme:
+Each size comes in a **dark**, a **light** and a **red** (safelight) theme:
 
 - **Fronts:** one per size, output type and theme. The front is the same for both print bindings.
 - **Backs, print:** two per size and theme, for ring binding (80 pages) and booklet (40 pages).
 - **Backs, online:** one per size and theme (40 pages).
 
-File names follow the pattern `cover_<size>_<print|online>_<dark|light>_<front|back>[_ring80|_booklet40].jpg`, for example `cover_A5_print_dark_front.jpg`.
+File names follow the pattern `cover_<size>_<print|online>_<dark|light|red>_<front|back>[_ring80|_booklet40].jpg`, for example `cover_A5_print_dark_front.jpg`.
 
 The files follow epubli's requirements: JPG, at least 300 dpi, no transparency, no crop marks, and the background running all the way into the bleed.
 
@@ -39,7 +39,9 @@ pip install -r requirements.txt
 python3 src/covers/make_covers.py
 ```
 
-The JPGs are written to `dist/covers/`. Existing files with the same name are overwritten. The `dist/` folder is not tracked by git; publish the files via a GitHub Release.
+The JPGs are written to `dist/covers/`. Existing files with the same name are overwritten.
+
+To build only some covers, pass words that must appear in the file name, e.g. `python3 src/covers/make_covers.py A5_print_red`. The `dist/` folder is not tracked by git; publish the files via a GitHub Release.
 
 ## Adjusting the design
 
@@ -71,6 +73,10 @@ The light theme is generated from the dark one:
 - **Test strip:** not inverted. It uses its own tone scale (`FRONT_LIGHT`).
 
 To change the light theme, edit `invert()` and `light()`.
+
+### How the red (safelight) theme is made
+
+The red theme keeps the dark background and turns every grey into a safelight red of similar lightness: red = grey × 1.3, green = grey × 0.2, blue = grey × 0.14 (function `red()`). The pencil note on the test strip ("gr 3 · f/8", grey `#717171`) is set brighter in this theme.
 
 ## Variants and back texts
 

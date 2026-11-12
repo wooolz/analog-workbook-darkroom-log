@@ -17,4 +17,4 @@ By default, `.ttf`/`.otf` files in this folder are ignored by git (see `.gitigno
 
 ## Word → PDF
 
-When exporting PDFs from the Word files, make sure the fonts are embedded (File → Options → Save → "Embed fonts in the file", with both sub-options on only including used chars and non-embedding common fonts unticked).
+When exporting PDFs from the Word files, make sure the fonts are embedded (File → Options → Save → "Embed fonts in the file", with both sub-options unticked).
