@@ -2,6 +2,9 @@
 dist/
 out/
 
+# publication-print service stuff
+epubli/
+
 # Drafts and personal finals 
 drafts-content/
 drafts-cover/
