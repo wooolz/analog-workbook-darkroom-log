@@ -4,20 +4,29 @@
 
 ## Output
 
-30 JPG files in `dist/covers/` (relative to the repository root):
+48 JPG files in `dist/covers/` (relative to the repository root), each in a **dark**, a **light** and a **red** (safelight) theme.
+
+**Single front and back files** (24): for ring binding (print, 3 mm bleed) and for the online versions (no bleed).
 
 | | Print (3 mm bleed) | Online / self-print (no bleed) |
 |---|---|---|
 | **A5** | 154 × 216 mm (2123 × 2977 px) | 148 × 210 mm (2039 × 2894 px) |
 | **A4** | 216 × 303 mm (2977 × 4176 px) | 210 × 297 mm (2894 × 4093 px) |
 
-Each size comes in a **dark**, a **light** and a **red** (safelight) theme:
+`cover_<A5|A4>_<print|online>_<theme>_front.jpg`, `…_print_<theme>_back_ring80.jpg`, `…_online_<theme>_back.jpg`
 
-- **Fronts:** one per size, output type and theme. The front is the same for both print bindings.
-- **Backs, print:** two per size and theme, for ring binding (80 pages) and booklet (40 pages).
-- **Backs, online:** one per size and theme (40 pages).
+**One-piece covers** (24): back · spine · front in one file, as epubli's "Cover als Gesamtdatei". Sizes from epubli's cover calculator, set in `SPREADS`:
 
-File names follow the pattern `cover_<size>_<print|online>_<dark|light|red>_<front|back>[_ring80|_booklet40].jpg`, for example `cover_A5_print_dark_front.jpg`.
+| Binding | A5: page · bleed · spine → total | A4: page · bleed · spine → total |
+|---|---|---|
+| booklet, 40 pages | 148 × 210 · 3 · 0 → 302 × 216 mm | 210 × 297 · 3 · 0 → 426 × 303 mm |
+| softcover, 80 pages | 148 × 210 · 3 · 5 → 307 × 216 mm | 210 × 297 · 3 · 5 → 431 × 303 mm |
+| hardcover, 80 pages | 157 × 228 · 11 · 9 → 345 × 250 mm | 219 × 315 · 11 · 9 → 469 × 337 mm |
+| ring binding, 80 pages | 148 × 210 · 3 · 10 → 312 × 216 mm | 210 × 297 · 3 · 10 → 436 × 303 mm |
+
+`cover_<A5|A4>_<booklet40|softcover80|hardcover80|ring80>_<theme>_spread.jpg`
+
+The design is scaled to the page width and centred vertically when the page is relatively taller (hardcover). The back stays free at the bottom left (no ISBN barcode). If epubli shows other values (different page count or paper), change them in `SPREADS`.
 
 The files follow epubli's requirements: JPG, at least 300 dpi, no transparency, no crop marks, and the background running all the way into the bleed.
 
@@ -80,13 +89,7 @@ The red theme keeps the dark background and turns every grey into a safelight re
 
 ## Variants and back texts
 
-Back texts per variant, from `backs`:
-
-- print / ring binding: `80 pages · A4|A5 · ring binding`
-- print / booklet: `40 pages · A4|A5 · booklet`
-- online: `40 pages · A4|A5 · for screen & self-print`
-
-To add a variant, for example a German back text, add an entry to `backs`, or extend the `for` loops at the end of the script.
+The line at the bottom of the back names pages, size and binding: for the single files it is set in `backs`, for the one-piece covers in `SPREADS` (`pages`).
 
 ## License
 

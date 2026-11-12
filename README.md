@@ -39,7 +39,9 @@ Made for black & white and RA-4 color printing, with color heads or filter/grade
 | **A4** | ✓ (larger fields, extra columns) | ✓ | ✓ |
 | **Bleed** | 3 mm | 3 mm | none |
 
-Each variant comes as **PDF** (ready to print or upload to a print service) and **Word** (for small edits). Covers come in a dark, a light and a safelight-red theme.
+Each variant comes as **PDF** (ready to print or upload to a print service) and **Word** (for small edits). Covers come in a dark, a light and a safelight-red theme: as separate front/back files (ring binding, online) and as one-piece covers (back · spine · front) for booklet, softcover, hardcover and ring binding.
+
+**Booklet to print at home:** `darkroom-log_en_A5_online-40_self-print-duplex.pdf` puts two A5 pages side by side on A4 landscape, already sorted for a stapled booklet (see *Printing*).
 
 Languages: English (German planned).
 
@@ -51,6 +53,9 @@ Ready-made files are attached to the [Releases](../../releases) of this reposito
 
 - **Print service:** use the print versions with 3 mm bleed. They were made for epubli's ring binding and booklet formats, but should work with any service that accepts PDF with bleed.
 - **At home:** use the online / self-print version and print at **100 % (actual size)**, not "fit to page".
+- **Stapled A5 booklet at home:** print `…_self-print-duplex.pdf` on 11 sheets of A4, **duplex, flip on short edge**, at 100 %. The first sheet is the cover (its back stays blank). Keep the sheets in order, put them together, fold in the middle and staple twice along the fold (a long-reach stapler helps).
+  - Tip: print the first sheet (cover) on heavier paper, e.g. 170 g/m² or more, so the booklet is more robust.
+- **Tip for all printed versions:** glue an envelope to the inside of the back cover – a handy place for test strips, contact prints or notes.
 - **Under safelight:** all lines and labels are grey or black, so they stay visible under red or amber safelights.
 
 ## Building the files yourself

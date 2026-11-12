@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Darkroom Log – workbook interior generator (Word .docx).
 // Usage: node build_workbook.js '<json config>'
-//   config: { size: "A5"|"A4", binding: "ring"|"booklet"|"online", personal: bool,
+//   config: { size: "A5"|"A4", binding: "ring"|"booklet"|"online", freeCol: "INT" (label of the free column, max. 6 chars),
+//             printer: "open"|"epubli",
 //             cover: "light"|"dark"|"red" (online only), kind: "workbook"|"howto"|"samples", out: "<file.docx>", assets: "<dir with torn_*.png>",
 //             covers: "<dir with cover JPGs>" }
 'use strict';
@@ -180,8 +181,15 @@ function imprintItems(print) {
   it.push({ el: new Paragraph({ spacing: exact(2 * S, 2 * S), indent: { right: mm(CW - w) }, border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: C.line, space: 1 } }, children: [] }), h: 4 * S });
   const sz = hp(11), lh = 3.4 * S, o = { size: sz, lh, color: C.imprint };
   T.imprint.lines.forEach(l => it.push(l ? textP(l, o) : spacer(1.6 * S)));
-  if (print) { it.push(spacer(1.6 * S)); T.imprint.epubli.forEach(l => it.push(textP(l, o))); }
-  else { it.push(spacer(1.6 * S)); it.push(textP(T.imprint.online, o)); }
+  it.push(spacer(1.6 * S));
+  if (!print) it.push(textP(T.imprint.online, o));                       // online: repository link
+  else if (cfg.printer === 'epubli') T.imprint.epubli.forEach(l => it.push(textP(l, o)));
+  else T.imprint.printFields.forEach(l => {                              // open print version: fields to fill in
+    it.push(textP(l, o));
+    it.push(grid([{ h: 4.6 * S, cells: [{ w: CW, borders: { top: none, left: none, right: none, bottom: dotted } }] }],
+      { borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none } }));
+    it.push(spacer(1 * S));
+  });
   return it;
 }
 const itemsH = it => sum(it.map(x => x.h));
@@ -245,8 +253,10 @@ async function renderTorn() {
   const sharp = require('sharp');
   for (const key of TORN.keys()) if (!TORN.get(key)) {
     const sp = JSON.parse(key);
-    if (sp.kind === 'qr') { TORN.set(key, await require('qrcode').toBuffer(sp.url, { margin: 0, width: 600, errorCorrectionLevel: 'M', color: { dark: '#333333', light: '#ffffff' } })); continue; }
-    TORN.set(key, await sharp(Buffer.from(sp.kind === 'circ' ? circSVG(sp) : tornSVG(sp))).png().toBuffer());
+    // all images without alpha channel (print services reject transparency)
+    const opaque = buf => sharp(buf).flatten({ background: '#ffffff' }).removeAlpha().png().toBuffer();
+    if (sp.kind === 'qr') { TORN.set(key, await opaque(await require('qrcode').toBuffer(sp.url, { margin: 0, width: 600, errorCorrectionLevel: 'M', color: { dark: '#333333', light: '#ffffff' } }))); continue; }
+    TORN.set(key, await opaque(Buffer.from(sp.kind === 'circ' ? circSVG(sp) : tornSVG(sp))));
   }
 }
 const handRun = (t, sizeHp) => run(t, { font: HAND, size: sizeHp, color: C.hand });
@@ -303,7 +313,7 @@ function snippet(label, cols, rows, o = {}) {
 }
 
 // ---------------------------------------------------------------- session table definitions
-const XCOL = cfg.personal ? 'INT' : '';
+const XCOL = (cfg.freeCol || '').slice(0, 6);    // pre-printed label of the free column after FILTER (empty by default)
 const SESS_A4 = { head: [['#', 14], ['DATE', 26], ['PROJECT · SESSION', 70], ['ENLARGER/LENS', 44], ['CHEM', 32]],
     cols: [['ROLL/NEG', 18], ['PRINT', 13], ['C', 10.5], ['M', 10.5], ['Y', 10.5], [XCOL, 12], ['TIME', 13], ['f/', 11], ['PAPER', 14], ['SIZE', 16], ['DODGE · BURN · NOTES', 57.5]] };
 const SESS_A5 = { head: [['#', 11], ['DATE', 21], ['PROJECT · SESSION', 48], ['ENLARGER/LENS', 26], ['CHEM', 18]],
@@ -427,7 +437,7 @@ function pageHowto2() {
   subHead(T.howto.readTitle);
   bullets(T.howto.read, ts);
   subHead(T.howto.notationTitle);
-  bullets(T.howto.bulletsShort.concat([cfg.personal ? T.howto.bulletINT : T.howto.bulletX], A4 ? [T.howto.bulletA4] : []), ts);
+  bullets(T.howto.bulletsShort.concat([XCOL === 'INT' ? T.howto.bulletINT : T.howto.bulletX], A4 ? [T.howto.bulletA4] : []), ts);
   subHead(T.howto.convTitle);
   add(textP(T.howto.convText, ts));
   add(dottedLines(A4 ? 6 : 4, 7 * S));

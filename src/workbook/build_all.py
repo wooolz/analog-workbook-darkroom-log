@@ -20,13 +20,14 @@ ASSETS = os.path.join(ROOT, 'dist', 'tmp')
 COVERS = os.path.join(ROOT, 'dist', 'covers')
 
 VARIANTS = [  # name, config
-    ('darkroom-log_en_A5_ring-80', dict(size='A5', binding='ring')),
-    ('darkroom-log_en_A4_ring-80', dict(size='A4', binding='ring')),
-    ('darkroom-log_en_A5_booklet-40', dict(size='A5', binding='booklet')),
-    ('darkroom-log_en_A4_booklet-40', dict(size='A4', binding='booklet')),
+    # print versions: no suffix = open imprint (fields for the print service), _epubli = filled in for epubli
+    *[(f'darkroom-log_en_{sz}_{bd}{sfx}', dict(size=sz, binding=bd.split('-')[0], printer=pr))
+      for bd in ('ring-80', 'booklet-40') for sz in ('A5', 'A4') for pr, sfx in (('open', ''), ('epubli', '_epubli'))],
     *[(f'darkroom-log_en_{sz}_online-40_{th}', dict(size=sz, binding='online', cover=th))     # online: one file per cover theme
       for sz in ('A5', 'A4') for th in ('light', 'dark', 'red')],
     ('darkroom-log_en_A4_howto-extended', dict(size='A4', binding='online', kind='howto')),
+    # personal: epubli ring binding with INT pre-printed in the free column (not part of the release)
+    ('darkroom-log_en_A5_ring-80_epubli_INT', dict(size='A5', binding='ring', printer='epubli', freeCol='INT')),
 ]
 EXPECTED_PAGES = {'ring': 80, 'booklet': 40, 'online': 42}
 
@@ -71,6 +72,34 @@ def mirror_margins(docx):
     shutil.move(tmp, docx)
 
 
+def self_print_duplex(src, dst):
+    """Booklet imposition for home printing: two A5 pages side by side on A4 landscape, duplex.
+
+    src: A5 online PDF with cover (page 1 = front cover, 2..41 = pages 1–40, last = back cover).
+    dst page 1 = back cover | front cover, page 2 = blank (inside of the cover sheet),
+    then the 40 content pages as 10 nested sheets: (40 | 1), (2 | 39), (38 | 3), (4 | 37) …
+    """
+    from pypdf import PdfReader, PdfWriter, Transformation, PageObject
+    r = PdfReader(src); pages = r.pages
+    fc, bc, content = pages[0], pages[-1], pages[1:-1]
+    n = len(content)
+    while n % 4: content.append(None); n += 1                       # pad to a multiple of 4
+    pw, ph = float(fc.mediabox.width), float(fc.mediabox.height)
+    W, H = 2 * pw, ph                                                # A4 landscape = 2 × A5
+    w = PdfWriter()
+    def sheet(left, right):
+        sp = PageObject.create_blank_page(width=W, height=H)
+        if left is not None: sp.merge_transformed_page(left, Transformation())
+        if right is not None: sp.merge_transformed_page(right, Transformation().translate(pw, 0))
+        w.add_page(sp)
+    sheet(bc, fc)
+    w.add_blank_page(width=W, height=H)
+    for k in range(n // 4):
+        sheet(content[n - 1 - 2 * k], content[2 * k])                  # front side: (n−2k | 1+2k)
+        sheet(content[1 + 2 * k], content[n - 2 - 2 * k])              # back side:  (2+2k | n−1−2k)
+    w.write(dst)
+
+
 def pdf_pages(pdf):
     out = subprocess.run(['pdfinfo', pdf], capture_output=True, text=True).stdout
     m = re.search(r'Pages:\s+(\d+)', out)
@@ -93,6 +122,10 @@ def main():
         subprocess.run(soffice + ['--headless', '--convert-to', 'pdf', '--outdir', OUT, docx], check=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         n = pdf_pages(os.path.join(OUT, name + '.pdf'))
+        if name == 'darkroom-log_en_A5_online-40_light':        # + booklet for home printing (light cover only)
+            dup = os.path.join(OUT, 'darkroom-log_en_A5_online-40_self-print-duplex.pdf')
+            self_print_duplex(os.path.join(OUT, name + '.pdf'), dup)
+            print(f'  -> {os.path.basename(dup)}: {pdf_pages(dup)} pages (A4 landscape, 2 × A5)')
         exp = 2 if conf['kind'] == 'howto' else EXPECTED_PAGES[conf['binding']]
         print(f'  -> {name}.pdf: {n} pages' + ('' if n == exp else f'   !! expected {exp}'))
 

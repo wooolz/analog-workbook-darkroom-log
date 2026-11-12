@@ -89,9 +89,11 @@ module.exports = {
       'Printing and handing out copies in workshops and courses is explicitly allowed, including as part of a paid course, as long as the workbook is not sold separately from the course or workshop.',
     ],
     online: 'Source, updates and the extended how-to: github.com/wooolz/analog-workbook-darkroom-log',
+    // print versions: 'open' = empty fields for the print service, 'epubli' = filled in for epubli
+    printFields: ['Production:', 'Contact according to the EU General Product Safety Regulation (GPSR):'],
     epubli: [
-      'Herstellung: epubli – ein Service der neopubli GmbH, Köpenicker Straße 154a, 10997 Berlin',
-      'Kontaktadresse nach EU-Produktsicherheitsverordnung: produktsicherheit@epubli.com',
+      'Production: epubli – a service of neopubli GmbH, Köpenicker Straße 154a, 10997 Berlin, Germany',
+      'Contact according to the EU General Product Safety Regulation (GPSR): produktsicherheit@epubli.com',
     ],
   },
   ext: {

@@ -174,7 +174,38 @@ def page(body, theme, size, bleed):
     return (f"<svg xmlns='http://www.w3.org/2000/svg' width='{W}mm' height='{H}mm' viewBox='0 0 {W} {H}'>"
             f"<rect width='{W}' height='{H}' fill='{bg}'/><g transform='translate({bl},{bl}) scale({s:.6f}) translate(-3,-3)'>{body}</g></svg>")
 
-backs = {'print': {'ring80': '80 pages · {sz} · ring binding', 'booklet40': '40 pages · {sz} · booklet'},
+# one-piece covers (epubli "Cover als Gesamtdatei"): back | spine | front in one file.
+# Values from epubli's cover calculator: page size, bleed (Beschnitt) and spine (Rücken) in mm,
+# plus the line at the bottom of the back.
+SPREADS = {
+    ('A5', 'booklet40'):   dict(w=148, h=210, bleed=3,  spine=0,  pages='40 pages · A5 · booklet'),
+    ('A5', 'softcover80'): dict(w=148, h=210, bleed=3,  spine=5,  pages='80 pages · A5 · softcover'),
+    ('A5', 'hardcover80'): dict(w=157, h=228, bleed=11, spine=9,  pages='80 pages · A5 · hardcover'),
+    ('A5', 'ring80'):      dict(w=148, h=210, bleed=3,  spine=10, pages='80 pages · A5 · ring binding'),
+    ('A4', 'booklet40'):   dict(w=210, h=297, bleed=3,  spine=0,  pages='40 pages · A4 · booklet'),
+    ('A4', 'softcover80'): dict(w=210, h=297, bleed=3,  spine=5,  pages='80 pages · A4 · softcover'),
+    ('A4', 'hardcover80'): dict(w=219, h=315, bleed=11, spine=9,  pages='80 pages · A4 · hardcover'),
+    ('A4', 'ring80'):      dict(w=210, h=297, bleed=3,  spine=10, pages='80 pages · A4 · ring binding'),
+}
+
+def spread(front_body, back_body, theme, f):
+    Wt, Ht, bl, sp = f['w'], f['h'], f['bleed'], f['spine']
+    s = Wt / 148                                    # design is made for a 148 mm wide page
+    dy = (Ht - 210 * s) / 2                         # centre vertically if the page is relatively taller
+    W, H = 2 * Wt + sp + 2 * bl, Ht + 2 * bl
+    bg = '#ffffff' if theme == 'light' else '#0e0e0e'
+    if theme == 'light': front_body, back_body = light(front_body), light(back_body)
+    if theme == 'red': front_body, back_body = red(front_body), red(back_body)
+    xb, xf = bl + Wt, bl + Wt + sp                  # spine from xb to xf
+    return (f"<svg xmlns='http://www.w3.org/2000/svg' width='{W}mm' height='{H}mm' viewBox='0 0 {W} {H}'>"
+            f"<defs><clipPath id='cb'><rect x='0' y='0' width='{xb}' height='{H}'/></clipPath>"
+            f"<clipPath id='cf'><rect x='{xf}' y='0' width='{W - xf}' height='{H}'/></clipPath></defs>"
+            f"<rect width='{W}' height='{H}' fill='{bg}'/>"
+            f"<g clip-path='url(#cb)'><g transform='translate({bl},{bl + dy:.3f}) scale({s:.6f}) translate(-3,-3)'>{back_body}</g></g>"
+            f"<g clip-path='url(#cf)'><g transform='translate({xf},{bl + dy:.3f}) scale({s:.6f}) translate(-3,-3)'>{front_body}</g></g></svg>")
+
+# single front/back files: print (ring binding, 3 mm bleed) and online (no bleed)
+backs = {'print': {'ring80': '80 pages · {sz} · ring binding'},
          'online': {'': '40 pages · {sz} · for screen &amp; self-print'}}
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'dist', 'covers')
 os.makedirs(OUT, exist_ok=True)
@@ -195,6 +226,15 @@ for theme in ('dark', 'light', 'red'):
                 open(svgf, 'w').write(page(body, theme, size, bleed))
                 subprocess.run(['rsvg-convert', '-d', '350', '-p', '350', '-f', 'png', '-o', png, svgf], check=True)
                 out.append(name)
+        # one-piece covers (back | spine | front) for every binding
+        for (sz, binding), fmt in SPREADS.items():
+            if sz != size: continue
+            name = f"cover_{size}_{binding}_{theme}_spread"
+            if not all(f in name for f in FILTER): continue
+            svgf = os.path.join(OUT, f"{name}.svg"); png = os.path.join(OUT, f"{name}.png")
+            open(svgf, 'w').write(spread(FRONT_LIGHT if theme == 'light' else FRONT, back(fmt['pages']), theme, fmt))
+            subprocess.run(['rsvg-convert', '-d', '350', '-p', '350', '-f', 'png', '-o', png, svgf], check=True)
+            out.append(name)
 from PIL import Image
 for n in out:
     p = os.path.join(OUT, n); im = Image.open(p + ".png").convert('RGB'); im.save(p + ".jpg", quality=95, dpi=(350, 350)); os.remove(p + ".png"); os.remove(p + ".svg")
