@@ -1,0 +1,51 @@
+Analog Workbook – Darkroom Log
+Copyright (c) 2026 Hannes Walz
+
+This repository is licensed under two different licenses, depending on the
+kind of material.
+
+
+1. CONTENT – CC BY-NC-SA 4.0
+----------------------------
+
+Applies to: all texts, page layouts, table designs, quick reference contents,
+cover designs and illustrations, preview images, and all generated output
+files (PDF, DOCX, JPG), whether they are in this repository or distributed
+via its releases.
+
+License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0
+International (CC BY-NC-SA 4.0)
+Full text: LICENSES/CC-BY-NC-SA-4.0.txt
+Summary:   https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+Additional permission:
+Printing and handing out copies in workshops and courses is explicitly
+allowed, including as part of a paid course, as long as the workbook is not
+sold separately from the course or workshop.
+
+
+2. CODE – AGPL-3.0-or-later
+---------------------------
+
+Applies to: all source code in the directory src/ (scripts that generate the
+workbook and the covers).
+
+License: GNU Affero General Public License, version 3 or (at your option)
+any later version (AGPL-3.0-or-later)
+Full text: LICENSES/AGPL-3.0-or-later.txt
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+details.
+
+Note: output generated with the code (PDF, DOCX, JPG) contains the content
+described in section 1 and is therefore covered by CC BY-NC-SA 4.0.
+
+
+3. FONTS
+--------
+
+The fonts used (Courier Prime, Caveat) are not part of this work. They are
+licensed by their respective authors under the SIL Open Font License 1.1.
+See fonts/README.md.

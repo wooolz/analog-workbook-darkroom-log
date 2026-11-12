@@ -1,0 +1,33 @@
+# Generated output (published via GitHub Releases instead)
+dist/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node (workbook generator)
+node_modules/
+npm-debug.log*
+
+# Office lock and temp files
+~$*
+*.tmp
+.~lock.*#
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Font binaries: download them yourself, see fonts/README.md
+# (remove these two lines if you decide to commit the fonts)
+fonts/*.ttf
+fonts/*.otf
