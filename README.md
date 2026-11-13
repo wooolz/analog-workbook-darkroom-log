@@ -14,7 +14,7 @@ A printable workbook for darkroom printing: log your sessions frame by frame and
 
 Made for black & white and RA-4 color printing, with color heads or filter/grade systems.
 
-![Cover previews](assets/previews/covers.png)
+![Cover previews](assets/previews/covers2.png)
 
 ## What's inside
 
