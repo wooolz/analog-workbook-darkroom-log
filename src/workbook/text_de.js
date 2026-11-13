@@ -50,8 +50,8 @@ module.exports = {
   },
   // Beispieleinträge (Handschrift); Produktnamen, Codes und Zahlen wie im Englischen
   samples: {
-    processes: [['SW-1', 'Ilford Multigrade 1+9\n90s · 20°', 'Maco eco stop 1+19\n10s', 'Ilford Rapidfix 1+4\n2×45s', '5+ min', 'PE-Papier'],
-      ['RA4', 'Bellini RA-4-Kit, Entw.\n45s · 35°', 'Stopp\n30s', 'Blix\n45s · 35°', '2 min', 'Jobo CPE-2, Dose, 1 l']],
+    processes: [['SW-1', 'Ilford Multigrade 1+9\n90s · 20°', 'Maco eco stop\n1+19 · 10s', 'Ilford Rapidfix 1+4\n2×45s', '5+ min', 'PE-Papier'],
+      ['RA4', 'Bellini RA-4-Kit, Entw.\n45s · 35°', 'Stopp\n30s', 'Blix\n45s · 35°', '2 min', 'Jobo CPE-2, Dose, 1\u00A0l']]   /* non-breaking space: "1 l" stays together */,
     enlargers: [['FM-1', 'Fujimoto G70', 'KB · Farbmischkopf', 'Rodenstock 50mm f/2,8', 'für KB']],
     enlargersExt: [['FM-1', 'Fujimoto G70', 'KB · Farbmischkopf', 'Rodenstock 50mm f/2,8', 'für KB'],
       ['DM-1', 'Durst M707BW', 'bis 6×7 · SW-Kopf', 'Minolta Rokkor 50mm f/4,5', 'für 6×6, 6×7']],

@@ -56,8 +56,8 @@ module.exports = {
   // example entries (written in the handwriting font)
   samples: {
     // \n = line break (dilution on the first line, time/temperature on the second)
-    processes: [['BW-1', 'Ilford Multigrade 1+9\n90s · 20°', 'Maco eco stop 1+19\n10s', 'Ilford Rapidfix 1+4\n2×45s', '5+ min', 'RC paper'],
-      ['RA4', 'Bellini RA-4 kit, dev\n45s · 35°', 'stop\n30s', 'blix\n45s · 35°', '2 min', 'Jobo CPE-2, drum, 1 l']],
+    processes: [['BW-1', 'Ilford Multigrade 1+9\n90s · 20°', 'Maco eco stop\n1+19 · 10s', 'Ilford Rapidfix 1+4\n2×45s', '5+ min', 'RC paper'],
+      ['RA4', 'Bellini RA-4 kit, dev\n45s · 35°', 'stop\n30s', 'blix\n45s · 35°', '2 min', 'Jobo CPE-2, drum, 1\u00A0l']]   /* non-breaking space: "1 l" stays together */,
     enlargers: [['FM-1', 'Fujimoto G70', '35mm · color head', 'Rodenstock 50mm f/2.8', 'for 35mm']],
     enlargersExt: [['FM-1', 'Fujimoto G70', '35mm · color head', 'Rodenstock 50mm f/2.8', 'for 35mm'],
       ['DM-1', 'Durst M707BW', 'up to 6×7 · bw head', 'Minolta Rokkor 50mm f/4.5', 'use for 6×6, 6×7']],
