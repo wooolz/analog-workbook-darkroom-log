@@ -38,6 +38,9 @@ const SAFE = 2.5;
 
 const mm = v => Math.round(v * 56.6929);
 const hp = v => Math.round(v * S);           // half-points scaled
+// column headers and field labels in tables: 7 pt in A5, 7.5 pt in A4 (LABEL_A5 = 12 would give the former 6 pt)
+const LABEL_A5 = 14;
+const LBL = () => hp(A4 ? 12 : LABEL_A5);
 const FONT = 'Courier Prime', HAND = 'Caveat';
 const C = { line: '9A9A9A', frame: '6E6E6E', label: '555555', shade: 'EEEEEE', text: '333333', hint: '888888',
   faint: 'D2D2D2', hand: '5E5E5E', imprint: '777777' };
@@ -109,7 +112,7 @@ function grid(rows, opts = {}) {
         margins: c.margins || { top: mm(0.5 * S), bottom: 0, left: mm(0.8 * S), right: mm(0.5 * S) },
         borders: c.borders,
         children: c.paras || [new Paragraph({ alignment: c.align, spacing: c.lh ? exact(c.lh) : { before: 0, after: 0 },
-          children: c.runs || (c.text ? [run(c.text, { size: c.size || hp(12), color: c.color || C.label, font: c.font, bold: c.bold })] : []) })],
+          children: c.runs || (c.text ? [run(c.text, { size: c.size || LBL(), color: c.color || C.label, font: c.font, bold: c.bold })] : []) })],
       });
     }) }));
   const table = new Table({ width: { size: mm(sum(colW)), type: WidthType.DXA }, columnWidths: colW.map(mm), layout: TableLayoutType.FIXED,
@@ -158,6 +161,22 @@ function fitPage(builder, maxF = 1) {
     pages.length = n; cur = pages[n - 1];
   }
 }
+// how-to pages: one fixed scale per format, so the type size is the same in every version and language
+//   workbook how-to A5 97 % = 7 pt body text, A4 100 % = 9 pt; extended how-to (A4) 80 % = 9 pt
+const HOWTO_SCALE = A4 ? 1.0 : 0.97, EXT_SCALE = 0.80;
+// quick-reference pointer: page 1 after the intro, or page 2 before "My conventions" (cfg.ptrPage2)
+const PTR_P2 = !!cfg.ptrPage2;
+// builds the pages at the fixed scale and reports pages that do not fit (estimate of the generator)
+function buildScaled(builders, f) {
+  const n = pages.length; S = S0 * f; FITM = 3;
+  builders.forEach(b => b());
+  pages.slice(n).forEach((p, i) => {
+    const over = p.used - (AVAIL - FITM);
+    if (over > 0.01) console.log(`  OVERFLOW page ${n + i + 1}: ${over.toFixed(1)} mm too much at ${Math.round(f * 100)} %`);
+    else console.log(`  page ${n + i + 1}: fits at ${Math.round(f * 100)} %, ${(-over).toFixed(1)} mm free`);
+  });
+  S = S0; FITM = 0;
+}
 function fillLines(h = 7 * S, after = 0) { const n = Math.floor((remaining() - after) / h); if (n > 0) add(dottedLines(n, h)); }
 
 // ---------------------------------------------------------------- page plan & TOC
@@ -186,11 +205,14 @@ function imprintItems(print) {
   it.push(spacer(1.6 * S));
   if (!print) it.push(textP(T.imprint.online, o));                       // online: repository link
   else if (cfg.printer === 'epubli') T.imprint.epubli.forEach(l => it.push(textP(l, o)));
-  else T.imprint.printFields.forEach(l => {                              // open print version: fields to fill in
-    it.push(textP(l, o));
-    it.push(grid([{ h: 4.6 * S, cells: [{ w: CW, borders: { top: none, left: none, right: none, bottom: dotted } }] }],
+  else T.imprint.printFields.forEach((l, i) => {                         // open print version: label, then a dotted line to fill in on the same line
+    const charW = (sz / 2) * 0.35278 * 0.6, lw = Math.min(CW * 0.75, l.length * charW + 1.5 * S), nb = { top: none, left: none, right: none, bottom: none };
+    const ms = { top: 0, bottom: 0, left: 0, right: 0 };
+    it.push(grid([{ h: 3.8 * S, cells: [
+      { w: lw, margins: ms, valign: VerticalAlign.BOTTOM, borders: nb, paras: [new Paragraph({ spacing: exact(lh), children: [run(l, { size: sz, color: C.imprint })] })] },
+      { w: CW - lw, margins: ms, borders: { ...nb, bottom: dotted } }] }],
       { borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none } }));
-    it.push(spacer(1 * S));
+    if (i < T.imprint.printFields.length - 1) it.push(spacer(0.6 * S));
   });
   return it;
 }
@@ -272,7 +294,7 @@ function snippet(label, cols, rows, o = {}) {
   const items = [];
   if (label && !o.noLabel) {
     const lab = run(label, { size: hp(12), color: C.text, bold: true });
-    items.push(o.expl ? textP([lab, run('  ' + o.expl, { size: hp(13), color: C.text })], { plain: label + '  ' + o.expl, size: hp(13), lh: 4 * S, after: 0.8 * S })
+    items.push(o.expl ? textP([lab, run('  ' + o.expl, { size: hp(14), color: C.text })], { plain: label + '  ' + o.expl, size: hp(14), lh: 4.2 * S, after: 0.8 * S })
       : textP(label, { size: hp(11), lh: 3.6 * S, color: C.label, bold: true }));
   }
   const tb = [];
@@ -324,7 +346,7 @@ const SESS_A5 = { head: [['#', 11], [CO.date, 21], [CO.projSess, 48], [CO.enlLen
 // setup table columns (logical A5 widths)
 const COLS_PROC = [[CO.abbrev, 13], [CO.developer, 28], [CO.stop, 20], [CO.fix, 26], [CO.wash, 15], [CO.notes, 22]];
 const COLS_ENL = [[CO.abbrev, 13], [CO.enlarger, 28], [CO.formatHead, 26], [CO.lens, 37], [CO.notes, 20]];
-const COLS_PAP = [[CO.abbrev, 12], [CO.paper, 52], [CO.size, 14], [CO.base, 11], [CO.process, 13], [CO.notes, 22]];
+const COLS_PAP = [[CO.abbrev, 12], [CO.paper, 55], [CO.size, 14], [CO.base, 11], [CO.process, 13], [CO.notes, 19]];
 const SESS = A4 ? SESS_A4 : SESS_A5;
 const FI = SESS.cols.findIndex(c => c[0] === 'C');     // first filter column
 // two-level column header: FILTER over C · M · Y
@@ -385,7 +407,9 @@ function pageTitle() {
 
 const SN = T.samples;
 function setupSnippets(o) {
-  const E = o.expl ? T.howto.setupExpl : {};
+  // A5: only the first sentence of each explanation (the short-code sentence is left out, the session log explains it)
+  const first = t => A4 || !t ? t : t.split(/(?<=\.)\s/)[0];
+  const E = o.expl ? Object.fromEntries(Object.entries(T.howto.setupExpl).map(([k, v]) => [k, (!A4 && (T.howto.setupExplA5 || {})[k]) || first(v)])) : {};
   add(snippet(T.labels.processes, COLS_PROC, SN.processes, { ...o, expl: E.processes, headCenter: [0], center: [0] }));
   add(spacer(o.gap));
   add(snippet(T.labels.enlargers, COLS_ENL, (o.ext ? SN.enlargersExt : SN.enlargers), { ...o, expl: E.enlargers, headCenter: [0], center: [0] }));
@@ -413,48 +437,89 @@ function sessionSnippet(o) {
     header: (scale, h) => [headRow(scale), ...colHeader(cols, scale, h, 3 * S, { top: thin, size: hp(11), xHand: SN.xHead, xHandSize: hs })] }));
 }
 function bullets(list, o) { list.forEach(b => add(textP(b, { size: o.size, lh: o.lh, color: C.text, indent: 2 * S, hang: 3.6 * S }))); }
-const subHead = t => add(textP(t, { size: hp(13), lh: 4.4 * S, color: C.text, bold: true, before: 2.2 * S }));
+const subHead = t => add(textP(t, { size: hp(14), lh: 4.4 * S, color: C.text, bold: true, before: 2.2 * S }));
 
 // link to the extended how-to: short text + QR code
-function moreBlock(ts) {
-  const q = 16 * S, tw = CW - q - 3 * S, ms = { top: 0, bottom: 0, left: 0, right: 0 };
-  const head = run(T.howto.moreTitle + '  ', { size: hp(13), bold: true, color: C.text });
+// writing lines under "My conventions" with the QR block: the last line is shortened, the QR code sits to its right
+// and reaches up into it; "more examples" sits below the line, bottom-aligned with the QR code
+function convLinesQr(n, lh, ts) {
+  const q = 16 * S, gap = 3 * S, tw = CW - q - gap, ms = { top: 0, bottom: 0, left: 0, right: 0 }, nb = { top: none, bottom: none, left: none, right: none };
+  const head = run(T.howto.moreTitle + '  ', { size: ts.size, bold: true, color: C.text });
   const kids = ONLINE ? T.howto.moreOnline.map(x => typeof x === 'object'
     ? new ExternalHyperlink({ link: T.ext.howtoUrl, children: [new TextRun({ text: x.link, font: FONT, size: ts.size, color: '2B4C7E', underline: {} })] })
     : run(x, { size: ts.size, color: C.text })) : [run(T.howto.morePrint, { size: ts.size, color: C.text })];
-  add(grid([{ h: q, cells: [
-    { w: tw, margins: ms, valign: VerticalAlign.CENTER, paras: [new Paragraph({ spacing: exact(ts.lh), children: [head, ...kids] })], borders: { top: none, bottom: none, left: none, right: none } },
-    { w: 3 * S, margins: ms, borders: { top: none, bottom: none, left: none, right: none } },
-    { w: q, margins: ms, runs: [qrImg(T.ext.howtoUrl, q)], borders: { top: none, bottom: none, left: none, right: none } }] }],
-    { borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none } }));
+  const plain = T.howto.moreTitle + '  ' + (ONLINE ? T.howto.moreOnline.map(x => typeof x === 'object' ? x.link : x).join('') : T.howto.morePrint);
+  const ht = Math.max(wrapCount(plain, ts.size, tw) * ts.lh, q - lh + 1 * S);
+  const line = w => ({ w, borders: { top: none, left: none, right: none, bottom: dotted } });
+  const rows = [];
+  for (let i = 0; i < n - 1; i++) rows.push({ h: lh, cells: [line(CW)] });
+  rows.push({ h: lh, cells: [line(tw), { w: gap, rowSpan: 2, margins: ms, borders: nb },
+    { w: q, rowSpan: 2, margins: ms, valign: VerticalAlign.BOTTOM, runs: [qrImg(T.ext.howtoUrl, q)], borders: nb }] });
+  rows.push({ h: ht, cells: [{ w: tw, margins: ms, valign: VerticalAlign.BOTTOM, borders: nb,
+    paras: [new Paragraph({ spacing: exact(ts.lh), keepLines: true, children: [head, ...kids] })] }] });
+  return grid(rows, { borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none } });
 }
+function qrStandalone(ts) {
+  const q = 16 * S, gap = 3 * S, tw = CW - q - gap, ms = { top: 0, bottom: 0, left: 0, right: 0 }, nb = { top: none, bottom: none, left: none, right: none };
+  const head = run(T.howto.moreTitle + '  ', { size: ts.size, bold: true, color: C.text });
+  const kids = T.howto.moreOnline.map(x => typeof x === 'object'
+    ? new ExternalHyperlink({ link: T.ext.howtoUrl, children: [new TextRun({ text: x.link, font: FONT, size: ts.size, color: '2B4C7E', underline: {} })] })
+    : run(x, { size: ts.size, color: C.text }));
+  return { ...grid([{ h: q, cells: [
+    { w: tw, margins: ms, valign: VerticalAlign.BOTTOM, borders: nb, paras: [new Paragraph({ spacing: exact(ts.lh), keepLines: true, children: [head, ...kids] })] },
+    { w: gap, margins: ms, borders: nb },
+    { w: q, margins: ms, valign: VerticalAlign.BOTTOM, runs: [qrImg(T.ext.howtoUrl, q)], borders: nb }] }],
+    { borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none } }), h: q };
+}
+const convLinesH = (n, lh, ts) => n * lh + Math.max(wrapCount(T.howto.moreTitle + '  ' + (ONLINE ? T.howto.moreOnline.map(x => typeof x === 'object' ? x.link : x).join('') : T.howto.morePrint), ts.size, CW - 19 * S) * ts.lh, 16 * S - lh + 1 * S);
 function pageHowto1() {
   newPage();
   add(title(U.howtoTitle, null, { bookmark: bm('howto') }));
   const ts = { size: hp(14), lh: 4.2 * S };
-  add(textP(T.howto.intro, { ...ts, after: 2.5 * S }));
+  const ptrP1 = !PTR_P2;   // quick-reference pointer on page 1, right after the intro
+  add(textP(T.howto.intro, { ...ts, after: (ptrP1 ? 1 : 2.5) * S }));
+  if (ptrP1) add(textP(T.howto.qr, { ...ts, after: 2.5 * S }));
   setupSnippets({ rh: 5.2 * S, headH: 4.6 * S, gap: 2.5 * S, handSize: hp(20), expl: true });
   subHead(T.howto.workflowTitle);
   bullets(T.howto.workflow, ts);
-  add(textP(T.howto.qr, { ...ts, before: 2 * S }));
-  if (!ONLINE) { const imp = imprintItems(true); add(spacer(remaining() - itemsH(imp))); add(imp); }
+  if (ONLINE) {                       // online: page 2 carries the imprint, so the session texts start here
+    add(spacer(2.5 * S)); sessionTexts(ts);
+    if (A4) { const qb = qrStandalone(ts); add(spacer(remaining() - qb.h)); add(qb); }   // A4 online: QR block at the bottom of page 1
+  } else {
+    if (A4) { add(spacer(2.5 * S)); add(textP(T.howto.sessionIntro, { ...ts, after: 1 * S })); }   // A4 print: first session text here
+    const imp = imprintItems(true); add(spacer(remaining() - itemsH(imp))); add(imp);
+  }
+}
+function sessionTexts(ts) {
+  add(textP(T.howto.sessionIntro, { ...ts, after: 1 * S }));
+  add(textP(T.howto.sessionHead, { ...ts, after: 1.5 * S }));
 }
 function pageHowto2() {
   newPage();
   const ts = { size: hp(14), lh: 4.2 * S };
-  add(textP(T.howto.sessionIntro, { ...ts, after: 1 * S }));
-  add(textP(T.howto.sessionHead, { ...ts, after: 1.5 * S }));
+  if (!ONLINE && A4) add(textP(T.howto.sessionHead, { ...ts, after: 1.5 * S }));   // A4 print: the session intro is on page 1
+  else if (!ONLINE) sessionTexts(ts);
   sessionSnippet({ rh: 5.6 * S, headH: 4.8 * S, handSize: hp(20) });
   subHead(T.howto.readTitle);
-  bullets(T.howto.read, ts);
+  bullets(A4 ? T.howto.read : T.howto.read.slice(0, T.howto.readA5 || T.howto.read.length), ts);   // A5 may use fewer lines
   subHead(T.howto.notationTitle);
   bullets(T.howto.bulletsShort.concat([XCOL === 'INT' ? T.howto.bulletINT : T.howto.bulletX], A4 ? [T.howto.bulletA4] : []), ts);
+  if (PTR_P2) add(textP(T.howto.qr, { ...ts, before: 2 * S }));        // pointer to the quick references (only if it does not fit on page 1)
   subHead(T.howto.convTitle);
   add(textP(T.howto.convText, ts));
-  add(dottedLines(A4 ? 5 : 3, 7 * S));
-  add(spacer(3 * S));
-  moreBlock(ts);
-  if (ONLINE) { const imp = imprintItems(false); add(spacer(remaining() - itemsH(imp))); add(imp); }
+  // writing lines with the QR block, then (online) the imprint: at least MIN_LINES, more if the page has room
+  // (A5 online carries the imprint on this page; the German imprint is longer, so one line less)
+  // (A4 online: the QR block is on page 1, so only plain lines here)
+  const MIN_LINES = A4 ? (ONLINE ? 6 : 8) : ONLINE ? (LANG === 'de' ? 2 : 3) : 4;
+  const lh = 7 * S, imp = ONLINE ? imprintItems(false) : [];
+  if (A4 && ONLINE) {
+    const n = cfg.convLines || Math.max(MIN_LINES, Math.floor((remaining() - itemsH(imp) - 2 * S) / lh));
+    add(dottedLines(n, lh)); add(spacer(remaining() - itemsH(imp))); add(imp); return;
+  }
+  const n = cfg.convLines || Math.max(MIN_LINES, Math.floor((remaining() - itemsH(imp) - convLinesH(1, lh, ts) + lh) / lh));
+  if (!ONLINE) add(spacer(Math.max(0, remaining() - convLinesH(n, lh, ts))));   // print: QR block at the bottom of the page
+  add({ ...convLinesQr(n, lh, ts), h: convLinesH(n, lh, ts) });
+  if (ONLINE) { add(spacer(remaining() - itemsH(imp))); add(imp); }
 }
 function pageSetup() {
   newPage();
@@ -553,7 +618,7 @@ function pageQR3() {
 function buildHowtoExtended() {
   const ts = () => ({ size: hp(18), lh: 5.2 * S });
   const H = (t, o = {}) => add(textP(t, { size: hp(20), lh: 6 * S, color: C.text, bold: true, before: o.before === undefined ? 3 * S : o.before, after: 1 * S }));
-  fitPage(() => {
+  const page1 = () => {
     newPage();
     add({ el: new Paragraph({ spacing: exact(8 * S, 1 * S), children: [run(U.ext.title, { size: hp(30), bold: true, color: C.text, spacing: 40 })] }), h: 9 * S });
     add(textP(U.ext.subtitle, { size: hp(18), lh: 5.5 * S, color: C.label, after: 3 * S }));
@@ -569,8 +634,8 @@ function buildHowtoExtended() {
     H(U.ext.setup);
     add(textP(T.ext.setup, { ...ts(), after: 1.5 * S }));
     setupSnippets({ rh: 6 * S, headH: 5 * S, gap: 2 * S, handSize: hp(22), ext: true });
-  });
-  fitPage(() => {
+  };
+  const page2 = () => {
     newPage();
     H(U.ext.session, { before: 0 });
     T.ext.session.forEach(p => add(textP(p, { ...ts(), after: 1.2 * S })));
@@ -579,7 +644,8 @@ function buildHowtoExtended() {
     T.ext.ids.forEach(b => add(textP('▸ ' + b, { ...ts(), indent: 2, hang: 4.5 })));
     H(U.ext.tips);
     T.ext.tips.forEach(b => add(textP('▸ ' + b, { ...ts(), indent: 2, hang: 4.5 })));
-  }, 1.15);
+  };
+  buildScaled([page1, page2], EXT_SCALE);
 }
 
 // ---------------------------------------------------------------- example overview (for reviewing the sample texts)
@@ -614,8 +680,9 @@ else {
     seen.add(k);
     switch (k) {
       case 'title': pageTitle(); break;
-      case 'howto1': fitPage(pageHowto1, A4 ? 1.3 : 1.15); break;
-      case 'howto2': fitPage(pageHowto2, A4 ? 1.3 : 1.15); break;
+      case 'howto1': case 'howto2':   // both how-to pages together, one type size
+        if (!seen.has('howtoPair')) { seen.add('howtoPair'); buildScaled([pageHowto1, pageHowto2], HOWTO_SCALE); }
+        break;
       case 'setup': pageSetup(); break;
       case 'papers': pagePapers(); break;
       case 'projidx': pageProjIdx(); break;

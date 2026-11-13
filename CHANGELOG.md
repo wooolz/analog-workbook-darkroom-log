@@ -1,14 +1,8 @@
 # Changelog
 
-## Unreleased
-
-- **German edition** (*Laborbuch Dunkelkammer*): all workbook variants, the extended how-to and all covers in German (`darkroom-log_de_…`, `cover_de_…`). German numbers use decimal commas.
-- **Generator:** all layout texts (titles, table headers, quick references) moved from `build_workbook.js` into the text files; new option `lang`. The cover script keeps all texts per language in `TEXT`.
-- **How-to layout (all languages):** the QR code with "More examples" moved from page 2 to page 3; one writing line less under "My conventions" (A5: 3, A4: 5).
-
 ## Edition 1.0 – November 2026
 
-First public edition (English).
+First public edition, in English (*Darkroom Log*) and German (*Laborbuch Dunkelkammer*).
 
 - **Workbook interior** in three bindings and two sizes (A5, A4):
   - ring binding, 80 pages, 3 mm bleed (120 session blocks)
@@ -19,4 +13,8 @@ First public edition (English).
 - **Covers:** dark, light and safelight-red theme; print (3 mm bleed) and online/self-print (no bleed); A5 and A4; one-piece covers (back · spine · front) for booklet, softcover, hardcover and ring binding.
 - **Self-print booklet:** A5 online version imposed two-up on A4 landscape for duplex printing and stapling.
 - Print-ready PDFs without transparency.
+- **Languages:** English and German (`darkroom-log_en_…`, `darkroom-log_de_…`, covers `cover_…` / `cover_de_…`). German numbers use decimal commas.
+- **Readability:** how-to body text 7 pt (A5) / 9 pt (A4, extended how-to), the same in every version; column headers and field labels 7 pt in A5.
 - Every file as PDF and Word (.docx).
+
+An English-only first upload of 1.0 was replaced by this edition before anyone had downloaded it.

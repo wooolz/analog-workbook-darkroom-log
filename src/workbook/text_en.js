@@ -18,6 +18,8 @@ module.exports = {
       papersA5: 'one row per paper type and size. Use its short code (abbrev) in the frame header line of the session log.',
       papersA4: 'one row per paper type and size. Use its short code (abbrev) in the PAPER column of the session log.',
     },
+    // A5 only: shorter explanations (otherwise the first sentence of setupExpl is used)
+    setupExplA5: { processes: 'one row per setup: chemical, dilution, time and temperature per bath.' },
     workflowTitle: 'A TYPICAL SESSION',
     workflow: [
       '▸ Before: check that process, enlarger and paper have a code in the setup tables.',
@@ -26,6 +28,7 @@ module.exports = {
     ],
     sessionHead: 'Session header: date, project or title, enlarger/lens code and process code (CHEM). The number is pre-printed and links the block to the session index.',
     readTitle: 'READING THE EXAMPLE',
+    readA5: 2,                     // A5 shows only the first 2 reading lines (1a, 1b)
     read: [
       '▸ 1a: roll 12, frame 14, color head with M 40 / Y 20, 12 s at f/8 → too much contrast',
       '▸ 1b: same frame, softer filtration, 14 s; sky burned +4 s, bush down-left dodged 2 s → better, circled as best print',
@@ -38,9 +41,9 @@ module.exports = {
       '▸ Negative ID: roll-frame, e.g. 12-14 (roll 12, frame 14)',
       '▸ Print ID: e.g. number = frame, letter = print (1a, 1b, 2a …)',
       '▸ Print back (pencil, on the dry print): date + print ID, e.g. 12.11.26 · 1b',
-      '▸ FILTER: color head → C · M · Y; filter set / VC head → grade, across the columns',
+      '▸ FILTER: color head → C · M · Y; filter set / VC head → grade, across columns',
     ],
-    bulletX: '▸ Empty column after FILTER: label it as needed (light intensity, enlarger height …)',
+    bulletX: '▸ Empty column after FILTER: label it as needed (light intensity, head height …)',
     bulletINT: '▸ INT: light intensity setting of the enlarger head',
     bulletA4: '▸ A4: ROLL/NEG, PAPER and SIZE columns can replace the frame line',
     qr: 'Quick references at the back: f-stop printing times, how print size changes affect times, RA-4 color cast corrections, contrast grades and the zone system.',
@@ -172,7 +175,7 @@ module.exports = {
       'Print ID: a number for each frame in the session and a letter for each print of it: 1a, 1b, 1c, 2a …',
       'Back of the print: write date and print ID in pencil, e.g. 12.11.26 · 1b. With the session index, this leads straight back to the log entry.',
       'FILTER: with a color head, write the C · M · Y values. With a filter set or a variable contrast head, write the grade across the three columns.',
-      'Empty column after FILTER: label it yourself – light intensity, enlarger height, timer program …',
+      'Empty column after FILTER: label it yourself – light intensity, enlarger head height, timer program …',
     ],
     tips: [
       'Use a pencil – it writes on damp paper and is easy to read under the safelight.',

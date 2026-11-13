@@ -41,7 +41,7 @@ Made for black & white and RA-4 color printing, with color heads or filter/grade
 
 Each variant comes as **PDF** (ready to print or upload to a print service) and **Word** (for small edits). Covers come in a dark, a light and a safelight-red theme: as separate front/back files (ring binding, online) and as one-piece covers (back · spine · front) for booklet, softcover, hardcover and ring binding.
 
-**Booklet to print at home:** `darkroom-log_en_A5_online-40_self-print-duplex.pdf` puts two A5 pages side by side on A4 landscape, already sorted for a stapled booklet (see *Printing*).
+**Booklet to print at home:** `darkroom-log_<lang>_A5_online-40_self-print-duplex.pdf` (`<lang>` = `en` or `de`) puts two A5 pages side by side on A4 landscape, already sorted for a stapled booklet (see *Printing*).
 
 Languages: English (*Darkroom Log*) and German (*Laborbuch Dunkelkammer*), file names `darkroom-log_en_…` and `darkroom-log_de_…`.
 

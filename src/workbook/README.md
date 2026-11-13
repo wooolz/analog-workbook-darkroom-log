@@ -60,9 +60,11 @@ The print versions without suffix leave two fields open for the print service: "
 
 - **Widths** are designed for A5 (124 mm content width) and scaled to A4 (186 mm). Type sizes and fixed heights scale by 1.25 on A4.
 - **Page height:** tables that end mid-page are extended with rows or note lines to the bottom margin.
-- **How-to pages** are fitted automatically: they are scaled up or down in small steps until they fill the page (the console reports e.g. "fitted page 2 at 94 %").
+- **How-to pages** use one fixed scale per format, the same in every version and language: workbook how-to A5 97 % (7 pt body text), A4 100 % (9 pt); extended how-to 80 % (9 pt). Constants `HOWTO_SCALE` and `EXT_SCALE` in `build_workbook.js`. The build reports per page whether it fits (`page 2: fits …` / `OVERFLOW …`). That report is an estimate and errs on the safe side by a few mm; the rendered PDF and its page count are what counts.
+- **Writing lines under "My conventions"** (how-to page 2): at least `MIN_LINES` (A5 print 4, A5 online 3 / German 2, A4 print 8, A4 online 6), more where the page has room. In A5 and A4 print the last line is shortened and the QR code reaches up into it.
+- **Text sizes outside the how-to:** column headers and field labels 7 pt in A5 (`LABEL_A5`), 7.5 pt in A4. Exceptions by design: zone table 6.5 pt, captions and subtitles 6 pt, imprint 5.5 pt, small labels inside the how-to examples.
 - **Example graphics** (torn-paper edges, circled print IDs, QR code) are rendered as images during the build, in a first pass that collects them.
-- **QR code / links:** `T.ext.howtoUrl` and `T.ext.repoUrl` in `text_<lang>.js`. The QR code sits on page 3, next to "More examples".
+- **QR code / links:** `T.ext.howtoUrl` and `T.ext.repoUrl` in `text_<lang>.js`. The QR code with "More examples" sits at the bottom of how-to page 2, except in A4 online, where it is at the bottom of page 1. The quick-reference pointer always follows the intro on page 1.
 - **No transparency:** all generated images are flattened onto white without alpha channel, because print services reject transparent elements.
 - **Self-print booklet:** `self_print_duplex()` in `build_all.py` (needs `pypdf`): page 1 = back | front cover, page 2 = blank, then nested sheets (40 | 1), (2 | 39), (38 | 3) …
 - **Mirrored margins** are not supported by the `docx` library, so `build_all.py` adds them to the finished file.
