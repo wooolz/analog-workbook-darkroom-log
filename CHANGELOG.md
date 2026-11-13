@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **German edition** (*Laborbuch Dunkelkammer*): all workbook variants, the extended how-to and all covers in German (`darkroom-log_de_…`, `cover_de_…`). German numbers use decimal commas.
+- **Generator:** all layout texts (titles, table headers, quick references) moved from `build_workbook.js` into the text files; new option `lang`. The cover script keeps all texts per language in `TEXT`.
+- **How-to layout (all languages):** the QR code with "More examples" moved from page 2 to page 3; one writing line less under "My conventions" (A5: 3, A4: 5).
+
 ## Edition 1.0 – November 2026
 
 First public edition (English).

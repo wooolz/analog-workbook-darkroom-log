@@ -20,9 +20,39 @@ def svg(body):
     return f"<svg xmlns='http://www.w3.org/2000/svg' width='{W}mm' height='{H}mm' viewBox='0 0 {W} {H}'>" \
            f"<rect width='{W}' height='{H}' fill='{BG}'/>{body}</svg>"
 
-def title(x=139):
-    return (f"<text x='{x}' y='36' {FONT} font-weight='bold' font-size='10.5' letter-spacing='1.6' text-anchor='end' fill='{TXT}'>DARKROOM LO<tspan letter-spacing='0'>G</tspan></text>"
-            f"<text x='{x}' y='44.5' {FONT} font-size='4.2' letter-spacing='0.9' text-anchor='end' fill='#bdbdbd'>A PRINTING WORKBOOK<tspan letter-spacing='0'></tspan></text>")
+# ---------- TEXTS (per language) ----------
+TEXT = {
+    'en': dict(pre='', title='DARKROOM LOG', sub='A PRINTING WORKBOOK',
+               para=["A workbook for the darkroom.", "",
+                     "Log your printing sessions", "frame by frame, print by", "print: filtration, time,", "aperture, dodging and",
+                     "burning. Keep your processes,", "papers and enlargers notes", "in one place.", "",
+                     "With session and project", "indexes, pages for your own", "learning notes and quick", "references for exposure,",
+                     "contrast and color.", "",
+                     "For black &amp; white and RA-4", "color printing."],
+               pages='pages', bind=dict(ring80='ring binding', booklet40='booklet', softcover80='softcover', hardcover80='hardcover',
+                                        online='for screen &amp; self-print'),
+               edition='Edition 1.0 · Nov 2026 · CC BY-NC-SA 4.0'),
+    'de': dict(pre='LABORBUCH', title='DUNKELKAMMER', sub='EIN ARBEITSBUCH FÜR ABZÜGE',
+               para=["Notizen deiner Sessions,", "Abzug für Abzug:", "Belichtungszeit, Filterung,", "Blende, Abwedeln und",
+                     "Nachbelichten sowie", "Prozesse, Papiere und", "Vergrößerer – alles", "an einem Ort.", "",
+                     "Dazu Session- und Projekt-", "verzeichnisse, Raum für", "eigene Anmerkungen sowie", "Referenztabellen zu",
+                     "Belichtung, Kontrast", "und Farbe.", "",
+                     "Für Schwarzweiß- und", "RA-4-Farbabzüge."],
+               pages='Seiten', bind=dict(ring80='Ringbindung', booklet40='Heftbindung', softcover80='Taschenbuch', hardcover80='Hardcover',
+                                         online='Digital &amp; Selbstdruck'),
+               edition='Edition 1.0 · Nov. 2026 · CC BY-NC-SA 4.0'),
+}
+LANGS = ('en', 'de')
+
+def spaced(t):   # letter-spaced text, right-aligned: no extra space after the last letter
+    return f"{t[:-1]}<tspan letter-spacing='0'>{t[-1]}</tspan>"
+
+def title(lang='en', x=139):
+    T = TEXT[lang]
+    pre = (f"<text x='{x}' y='26.5' {FONT} font-size='4.2' letter-spacing='0.9' text-anchor='end' fill='#bdbdbd'>{spaced(T['pre'])}</text>"
+           if T['pre'] else '')
+    return (pre + f"<text x='{x}' y='36' {FONT} font-weight='bold' font-size='10.5' letter-spacing='1.6' text-anchor='end' fill='{TXT}'>{spaced(T['title'])}</text>"
+            f"<text x='{x}' y='44.5' {FONT} font-size='4.2' letter-spacing='0.9' text-anchor='end' fill='#bdbdbd'>{spaced(T['sub'])}</text>")
 
 def head():
     p = []
@@ -68,7 +98,7 @@ def lighten(c, d):
 DARK = ['#505050', '#464646', '#3d3d3d', '#343434', '#2c2c2c', '#252525', '#1e1e1e', '#191919']
 TIMES = [2, 4, 6, 8, 10, 12, 14, 16]
 
-def compose(head_tf, strip_tf, extra='', second=None):
+def compose(head_tf, strip_tf, extra='', second=None, lang='en'):
     clip = f"<clipPath id='lit'><polygon points='{CONE}' transform='{head_tf}'/></clipPath>"
     cone = f"<polygon points='{CONE}' fill='#1b1b1b' transform='{head_tf}'/>"
     note = f"<text x='14' y='6.5' {FONT} font-size='3.2' fill='#717171'>gr 3 · f/8</text>"   # own grey value: brighter in the red theme
@@ -79,7 +109,7 @@ def compose(head_tf, strip_tf, extra='', second=None):
         cols = ['#2e2e2e', '#2a2a2a', '#262626', '#222222', '#1f1f1f', '#1c1c1c', '#191919', '#161616']
         sec = (f"<g transform='{second}'>{bands(TIMES, cols, False)}</g>"
                f"<g clip-path='url(#lit)'><g transform='{second}'>{bands(TIMES, [lighten(c, 18) for c in cols], False)}</g></g>")
-    return f"<defs>{clip}</defs>{cone}{extra}<!--S-->{sec}{s_dark}{s_lit}<!--/S--><g transform='{head_tf}'>{head()}</g>" + title()
+    return f"<defs>{clip}</defs>{cone}{extra}<!--S-->{sec}{s_dark}{s_lit}<!--/S--><g transform='{head_tf}'>{head()}</g>" + title(lang)
 
 
 # ---------- FRONT COMPOSITIONS ----------
@@ -87,23 +117,24 @@ STRIP_ANGLE, STRIP_X0, STRIP_EXIT = 10, -8, 190.4      # strip: 10 deg, upper ed
 _y0 = STRIP_EXIT - (151 - STRIP_X0) * math.tan(math.radians(STRIP_ANGLE))
 HEAD_TF = "translate(93,76) rotate(17) scale(0.8)"     # enlarger head: position, 17 deg, scale
 STRIP_TF = f"translate({STRIP_X0},{_y0:.1f}) rotate({STRIP_ANGLE}) translate(0,3.5)"
-FRONT = compose(HEAD_TF, STRIP_TF)
+FRONT = {l: compose(HEAD_TF, STRIP_TF, lang=l) for l in LANGS}
 # light theme: own test-strip palette, 8 s band kept at #999999, 16 steps apart
 DARK_STRIP = DARK
 DARK = ['#%02x%02x%02x' % ((153 + (3 - i) * 16,) * 3) for i in range(8)]
-FRONT_LIGHT = compose(HEAD_TF, STRIP_TF)
+FRONT_LIGHT = {l: compose(HEAD_TF, STRIP_TF, lang=l) for l in LANGS}
 DARK = DARK_STRIP
 
 # ---------- BACK ----------
-def back(pages='80 pages · A5 · ring binding'):
-    p = [f"<text x='77' y='30' {FONT} font-weight='bold' font-size='5.2' letter-spacing='0.8' text-anchor='middle' fill='{TXT}'>DARKROOM LOG</text>",
-         f"<text x='77' y='36' {FONT} font-size='2.9' letter-spacing='0.5' text-anchor='middle' fill='#bdbdbd'>A PRINTING WORKBOOK</text>"]
-    para = ["A workbook for the darkroom.", "",
-            "Log your printing sessions", "frame by frame, print by", "print: filtration, time,", "aperture, dodging and",
-            "burning. Keep your processes,", "papers and enlargers notes", "in one place.", "",
-            "With session and project", "indexes, pages for your own", "learning notes and quick", "references for exposure,",
-            "contrast and color.", "",
-            "For black &amp; white and RA-4", "color printing."]
+def back(pages, lang='en'):
+    T = TEXT[lang]
+    if T['pre']:   # two-part title: small pre-title, large title
+        p = [f"<text x='77' y='24.5' {FONT} font-size='2.9' letter-spacing='0.5' text-anchor='middle' fill='#bdbdbd'>{T['pre']}</text>",
+             f"<text x='77' y='31' {FONT} font-weight='bold' font-size='5.2' letter-spacing='0.8' text-anchor='middle' fill='{TXT}'>{T['title']}</text>",
+             f"<text x='77' y='37' {FONT} font-size='2.9' letter-spacing='0.5' text-anchor='middle' fill='#bdbdbd'>{T['sub']}</text>"]
+    else:
+        p = [f"<text x='77' y='30' {FONT} font-weight='bold' font-size='5.2' letter-spacing='0.8' text-anchor='middle' fill='{TXT}'>{T['title']}</text>",
+             f"<text x='77' y='36' {FONT} font-size='2.9' letter-spacing='0.5' text-anchor='middle' fill='#bdbdbd'>{T['sub']}</text>"]
+    para = T['para']
     y = 48
     for l in para:
         if l: p.append(f"<text x='77' y='{y}' {FONT} font-size='3.2' text-anchor='middle' fill='#d6d6d6'>{l}</text>")
@@ -128,7 +159,7 @@ def back(pages='80 pages · A5 · ring binding'):
         p.append(f"<text x='{fx+21}' y='{yb-0.55}' {FONT} font-size='1.5' fill='#666'>{n}A</text>")
         fx += 38; n += 1
     p.append(f"<text x='77' y='196' {FONT} font-size='2.8' text-anchor='middle' fill='#9a9a9a'>{pages}</text>")
-    p.append(f"<text x='77' y='201' {FONT} font-size='2.4' text-anchor='middle' fill='#7a7a7a'>Edition 1.0 · Nov 2026 · CC BY-NC-SA 4.0</text>")
+    p.append(f"<text x='77' y='201' {FONT} font-size='2.4' text-anchor='middle' fill='#7a7a7a'>{T['edition']}</text>")
     return ''.join(p)
 
 
@@ -176,16 +207,16 @@ def page(body, theme, size, bleed):
 
 # one-piece covers (epubli "Cover als Gesamtdatei"): back | spine | front in one file.
 # Values from epubli's cover calculator: page size, bleed (Beschnitt) and spine (Rücken) in mm,
-# plus the line at the bottom of the back.
+# n = page count for the line at the bottom of the back.
 SPREADS = {
-    ('A5', 'booklet40'):   dict(w=148, h=210, bleed=3,  spine=0,  pages='40 pages · A5 · booklet'),
-    ('A5', 'softcover80'): dict(w=148, h=210, bleed=3,  spine=5,  pages='80 pages · A5 · softcover'),
-    ('A5', 'hardcover80'): dict(w=157, h=228, bleed=11, spine=9,  pages='80 pages · A5 · hardcover'),
-    ('A5', 'ring80'):      dict(w=148, h=210, bleed=3,  spine=10, pages='80 pages · A5 · ring binding'),
-    ('A4', 'booklet40'):   dict(w=210, h=297, bleed=3,  spine=0,  pages='40 pages · A4 · booklet'),
-    ('A4', 'softcover80'): dict(w=210, h=297, bleed=3,  spine=5,  pages='80 pages · A4 · softcover'),
-    ('A4', 'hardcover80'): dict(w=219, h=315, bleed=11, spine=9,  pages='80 pages · A4 · hardcover'),
-    ('A4', 'ring80'):      dict(w=210, h=297, bleed=3,  spine=10, pages='80 pages · A4 · ring binding'),
+    ('A5', 'booklet40'):   dict(w=148, h=210, bleed=3,  spine=0,  n=40),
+    ('A5', 'softcover80'): dict(w=148, h=210, bleed=3,  spine=5,  n=80),
+    ('A5', 'hardcover80'): dict(w=157, h=228, bleed=11, spine=9,  n=80),
+    ('A5', 'ring80'):      dict(w=148, h=210, bleed=3,  spine=10, n=80),
+    ('A4', 'booklet40'):   dict(w=210, h=297, bleed=3,  spine=0,  n=40),
+    ('A4', 'softcover80'): dict(w=210, h=297, bleed=3,  spine=5,  n=80),
+    ('A4', 'hardcover80'): dict(w=219, h=315, bleed=11, spine=9,  n=80),
+    ('A4', 'ring80'):      dict(w=210, h=297, bleed=3,  spine=10, n=80),
 }
 
 def spread(front_body, back_body, theme, f):
@@ -205,21 +236,26 @@ def spread(front_body, back_body, theme, f):
             f"<g clip-path='url(#cf)'><g transform='translate({xf},{bl + dy:.3f}) scale({s:.6f}) translate(-3,-3)'>{front_body}</g></g></svg>")
 
 # single front/back files: print (ring binding, 3 mm bleed) and online (no bleed)
-backs = {'print': {'ring80': '80 pages · {sz} · ring binding'},
-         'online': {'': '40 pages · {sz} · for screen &amp; self-print'}}
+backs = {'print': {'ring80': (80, 'ring80')}, 'online': {'': (40, 'online')}}
+def pages_line(n, size, binding, lang):
+    T = TEXT[lang]; return f"{n} {T['pages']} · {size} · {T['bind'][binding]}"
+
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'dist', 'covers')
 os.makedirs(OUT, exist_ok=True)
 # optional filter: only build covers whose name contains all given words, e.g.  make_covers.py A5_print_red
 import sys
 FILTER = sys.argv[1:]
 out = []
-for theme in ('dark', 'light', 'red'):
+for lang in LANGS:
+  pre = '' if lang == 'en' else f'{lang}_'         # English names unchanged, other languages: cover_de_…
+  for theme in ('dark', 'light', 'red'):
+    front = FRONT_LIGHT[lang] if theme == 'light' else FRONT[lang]
     for size in ('A5', 'A4'):
         for kind, bleed in (('print', True), ('online', False)):
-            base = f"cover_{size}_{kind}_{theme}"
-            jobs = [(f"{base}_front", FRONT_LIGHT if theme == "light" else FRONT)]
-            for tag, txt in backs[kind].items():
-                jobs.append((f"{base}_back" + (f"_{tag}" if tag else ''), back(txt.format(sz=size))))
+            base = f"cover_{pre}{size}_{kind}_{theme}"
+            jobs = [(f"{base}_front", front)]
+            for tag, (n, bk) in backs[kind].items():
+                jobs.append((f"{base}_back" + (f"_{tag}" if tag else ''), back(pages_line(n, size, bk, lang), lang)))
             for name, body in jobs:
                 if not all(f in name for f in FILTER): continue
                 svgf = os.path.join(OUT, f"{name}.svg"); png = os.path.join(OUT, f"{name}.png")
@@ -229,10 +265,10 @@ for theme in ('dark', 'light', 'red'):
         # one-piece covers (back | spine | front) for every binding
         for (sz, binding), fmt in SPREADS.items():
             if sz != size: continue
-            name = f"cover_{size}_{binding}_{theme}_spread"
+            name = f"cover_{pre}{size}_{binding}_{theme}_spread"
             if not all(f in name for f in FILTER): continue
             svgf = os.path.join(OUT, f"{name}.svg"); png = os.path.join(OUT, f"{name}.png")
-            open(svgf, 'w').write(spread(FRONT_LIGHT if theme == 'light' else FRONT, back(fmt['pages']), theme, fmt))
+            open(svgf, 'w').write(spread(front, back(pages_line(fmt['n'], size, binding, lang), lang), theme, fmt))
             subprocess.run(['rsvg-convert', '-d', '350', '-p', '350', '-f', 'png', '-o', png, svgf], check=True)
             out.append(name)
 from PIL import Image

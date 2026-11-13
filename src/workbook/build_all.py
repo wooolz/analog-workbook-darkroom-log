@@ -7,7 +7,7 @@ LibreOffice (soffice) for the PDF export, fonts Courier Prime + Caveat installed
 and the online covers in dist/covers (python3 src/covers/make_covers.py).
 
 Run from the repository root:  python3 src/workbook/build_all.py [filter]
-  optional filter: only build variants whose name contains this text, e.g. "A5_ring"
+  optional filter: only build variants whose name contains this text, e.g. "A5_ring" or "_de_"
 Environment: SOFFICE_CMD overrides the LibreOffice command (default: "soffice").
 """
 import json, os, random, re, shlex, subprocess, sys, zipfile, shutil
@@ -19,15 +19,16 @@ OUT = os.path.join(ROOT, 'dist', 'workbook')
 ASSETS = os.path.join(ROOT, 'dist', 'tmp')
 COVERS = os.path.join(ROOT, 'dist', 'covers')
 
+LANGS = ('en', 'de')
 VARIANTS = [  # name, config
     # print versions: no suffix = open imprint (fields for the print service), _epubli = filled in for epubli
-    *[(f'darkroom-log_en_{sz}_{bd}{sfx}', dict(size=sz, binding=bd.split('-')[0], printer=pr))
-      for bd in ('ring-80', 'booklet-40') for sz in ('A5', 'A4') for pr, sfx in (('open', ''), ('epubli', '_epubli'))],
-    *[(f'darkroom-log_en_{sz}_online-40_{th}', dict(size=sz, binding='online', cover=th))     # online: one file per cover theme
-      for sz in ('A5', 'A4') for th in ('light', 'dark', 'red')],
-    ('darkroom-log_en_A4_howto-extended', dict(size='A4', binding='online', kind='howto')),
+    *[(f'darkroom-log_{lg}_{sz}_{bd}{sfx}', dict(lang=lg, size=sz, binding=bd.split('-')[0], printer=pr))
+      for lg in LANGS for bd in ('ring-80', 'booklet-40') for sz in ('A5', 'A4') for pr, sfx in (('open', ''), ('epubli', '_epubli'))],
+    *[(f'darkroom-log_{lg}_{sz}_online-40_{th}', dict(lang=lg, size=sz, binding='online', cover=th))     # online: one file per cover theme
+      for lg in LANGS for sz in ('A5', 'A4') for th in ('light', 'dark', 'red')],
+    *[(f'darkroom-log_{lg}_A4_howto-extended', dict(lang=lg, size='A4', binding='online', kind='howto')) for lg in LANGS],
     # personal: epubli ring binding with INT pre-printed in the free column (not part of the release)
-    ('darkroom-log_en_A5_ring-80_epubli_INT', dict(size='A5', binding='ring', printer='epubli', freeCol='INT')),
+    ('darkroom-log_en_A5_ring-80_epubli_INT', dict(lang='en', size='A5', binding='ring', printer='epubli', freeCol='INT')),
 ]
 EXPECTED_PAGES = {'ring': 80, 'booklet': 40, 'online': 42}
 
@@ -122,8 +123,8 @@ def main():
         subprocess.run(soffice + ['--headless', '--convert-to', 'pdf', '--outdir', OUT, docx], check=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         n = pdf_pages(os.path.join(OUT, name + '.pdf'))
-        if name == 'darkroom-log_en_A5_online-40_light':        # + booklet for home printing (light cover only)
-            dup = os.path.join(OUT, 'darkroom-log_en_A5_online-40_self-print-duplex.pdf')
+        if re.fullmatch(r'darkroom-log_[a-z]{2}_A5_online-40_light', name):   # + booklet for home printing (light cover only)
+            dup = os.path.join(OUT, name.replace('_light', '_self-print-duplex') + '.pdf')
             self_print_duplex(os.path.join(OUT, name + '.pdf'), dup)
             print(f'  -> {os.path.basename(dup)}: {pdf_pages(dup)} pages (A4 landscape, 2 × A5)')
         exp = 2 if conf['kind'] == 'howto' else EXPECTED_PAGES[conf['binding']]

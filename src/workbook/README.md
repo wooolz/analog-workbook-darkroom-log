@@ -1,6 +1,6 @@
 # Workbook interior generator
 
-Generates the Darkroom Log workbook interiors as Word (`.docx`) files and exports them to PDF.
+Generates the Darkroom Log workbook interiors as Word (`.docx`) files and exports them to PDF, in English (*Darkroom Log*) and German (*Laborbuch Dunkelkammer*).
 
 ## Files
 
@@ -8,6 +8,7 @@ Generates the Darkroom Log workbook interiors as Word (`.docx`) files and export
 |---|---|
 | `build_workbook.js` | builds one variant as `.docx` (layout, tables, pages) |
 | `text_en.js` | all English texts and example entries |
+| `text_de.js` | all German texts and example entries (same structure) |
 | `build_all.py` | builds all variants, adds mirrored margins (ring binding), exports PDFs, checks page counts |
 | `preview.py` | builds only selected page types in A5 and A4 and renders them as PNG (`dist/preview/`) |
 
@@ -27,9 +28,10 @@ From the repository root:
 ```
 python3 src/workbook/build_all.py            # all variants
 python3 src/workbook/build_all.py online     # only names containing "online"
+python3 src/workbook/build_all.py _de_       # only the German versions
 ```
 
-Output is written to `dist/workbook/`:
+Output is written to `dist/workbook/`. The same set is built per language: `darkroom-log_en_…` and `darkroom-log_de_…`. (The personal `_INT` example is English only.)
 
 | File | Variant |
 |---|---|
@@ -43,6 +45,7 @@ Output is written to `dist/workbook/`:
 
 ## Options
 
+- `lang: 'en' | 'de'` chooses the text file (`text_<lang>.js`), the decimal separator (1.41 / 1,41), the online cover pages (`cover_…` / `cover_de_…`) and the QR code target (`darkroom-log_<lang>_A4_howto-extended.pdf`).
 - `freeCol: 'INT'` pre-prints a label (max. 6 characters) in the free column after FILTER, e.g. INT for light intensity. Default: empty.
 - `printer: 'epubli'` fills in the production and GPSR lines of the imprint (print versions).
 - `cover: 'light' | 'dark' | 'red'` chooses the cover pages of the online versions.
@@ -51,7 +54,7 @@ Add a line to `VARIANTS` in `build_all.py` to build your own combination.
 
 ## Imprint of the print versions
 
-The print versions without suffix leave two fields open for the print service: "Production:" and "Contact according to the EU General Product Safety Regulation (GPSR):". The `_epubli` versions have them filled in (texts in `T.imprint` in `text_en.js`; switch with `printer: 'epubli'` in `build_all.py`).
+The print versions without suffix leave two fields open for the print service: "Production:" and "Contact according to the EU General Product Safety Regulation (GPSR):". The `_epubli` versions have them filled in (texts in `T.imprint` in `text_en.js` / `text_de.js`; switch with `printer: 'epubli'` in `build_all.py`).
 
 ## How the layout works
 
@@ -59,13 +62,14 @@ The print versions without suffix leave two fields open for the print service: "
 - **Page height:** tables that end mid-page are extended with rows or note lines to the bottom margin.
 - **How-to pages** are fitted automatically: they are scaled up or down in small steps until they fill the page (the console reports e.g. "fitted page 2 at 94 %").
 - **Example graphics** (torn-paper edges, circled print IDs, QR code) are rendered as images during the build, in a first pass that collects them.
-- **QR code / links:** `T.ext.howtoUrl` and `T.ext.repoUrl` in `text_en.js`.
+- **QR code / links:** `T.ext.howtoUrl` and `T.ext.repoUrl` in `text_<lang>.js`. The QR code sits on page 3, next to "More examples".
 - **No transparency:** all generated images are flattened onto white without alpha channel, because print services reject transparent elements.
 - **Self-print booklet:** `self_print_duplex()` in `build_all.py` (needs `pypdf`): page 1 = back | front cover, page 2 = blank, then nested sheets (40 | 1), (2 | 39), (38 | 3) …
 - **Mirrored margins** are not supported by the `docx` library, so `build_all.py` adds them to the finished file.
 
 ## Editing
 
-- **Texts:** edit `text_en.js`.
+- **Texts:** edit `text_en.js` or `text_de.js`. Body texts are in `howto`, `samples`, `imprint` and `ext`; titles, table headers and quick references are in `ui`.
+- **Another language:** copy `text_en.js` to `text_<code>.js`, translate it, add the code to `LANGS` in `build_all.py`, and add it to `LANGS`/`TEXT` in `src/covers/make_covers.py` for the covers.
 - **Layout:** the page functions in `build_workbook.js` (`pageSetup`, `sessionBlock`, `pageQR1` …).
 - **Small one-off fixes:** edit the generated Word file and export it to PDF from Word (embed the fonts). These changes are lost when you rebuild.

@@ -5,7 +5,7 @@
 Run from the repository root:
   python3 src/workbook/preview.py title session            -> dist/preview/<kind>_A5.png, _A4.png, sheet.png
 Page kinds: title howto1 howto2 setup papers projidx sessidx learn session qr1 qr2 qr3 notes
-Option --binding booklet|online (default ring), --dpi N (default 110)
+Option --binding booklet|online (default ring), --dpi N (default 110), --lang en|de (default en)
 """
 import json, os, subprocess, sys, shlex, glob
 from PIL import Image
@@ -13,8 +13,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build_all as B
 
 args = sys.argv[1:]
-binding, dpi = 'ring', 110
+binding, dpi, lang = 'ring', 110, 'en'
 if '--binding' in args: i = args.index('--binding'); binding = args[i + 1]; del args[i:i + 2]
+if '--lang' in args: i = args.index('--lang'); lang = args[i + 1]; del args[i:i + 2]
 if '--dpi' in args: i = args.index('--dpi'); dpi = int(args[i + 1]); del args[i:i + 2]
 kinds = args or ['title']
 OUT = os.path.join(B.ROOT, 'dist', 'preview')
@@ -26,7 +27,7 @@ order = ['title', 'howto1', 'howto2', 'setup', 'papers', 'projidx', 'sessidx', '
 pngs = {}
 for size in ('A5', 'A4'):
     docx = os.path.join(OUT, f'preview_{size}.docx')
-    conf = dict(size=size, binding=binding, kind='workbook', only=kinds, out=docx, assets=B.ASSETS, covers=B.COVERS)
+    conf = dict(lang=lang, size=size, binding=binding, kind='workbook', only=kinds, out=docx, assets=B.ASSETS, covers=B.COVERS)
     subprocess.run(['node', os.path.join(B.HERE, 'build_workbook.js'), json.dumps(conf)], check=True, stdout=subprocess.DEVNULL)
     if binding == 'ring': B.mirror_margins(docx)
     subprocess.run(soffice + ['--headless', '--convert-to', 'pdf', '--outdir', OUT, docx], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

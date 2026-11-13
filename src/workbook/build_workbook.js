@@ -4,7 +4,7 @@
 //   config: { size: "A5"|"A4", binding: "ring"|"booklet"|"online", freeCol: "INT" (label of the free column, max. 6 chars),
 //             printer: "open"|"epubli",
 //             cover: "light"|"dark"|"red" (online only), kind: "workbook"|"howto"|"samples", out: "<file.docx>", assets: "<dir with torn_*.png>",
-//             covers: "<dir with cover JPGs>" }
+//             covers: "<dir with cover JPGs>", lang: "en"|"de" (texts from text_<lang>.js) }
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -13,9 +13,11 @@ const {
   HeightRule, VerticalAlign, AlignmentType, Footer, PageNumber, TableLayoutType, LineRuleType, Tab,
   TabStopType, LeaderType, ImageRun, Bookmark, InternalHyperlink, ExternalHyperlink, HorizontalPositionRelativeFrom, VerticalPositionRelativeFrom, TextWrappingType,
 } = require('docx');
-const T = require('./text_en.js');
-
 const cfg = JSON.parse(process.argv[2]);
+const LANG = cfg.lang || 'en';
+const T = require(`./text_${LANG}.js`);
+const U = T.ui;
+const dec = v => String(v).replace('.', U.dec);   // decimal separator of the language
 const A4 = cfg.size === 'A4';
 const ONLINE = cfg.binding === 'online';
 const RING = cfg.binding === 'ring';
@@ -314,10 +316,15 @@ function snippet(label, cols, rows, o = {}) {
 
 // ---------------------------------------------------------------- session table definitions
 const XCOL = (cfg.freeCol || '').slice(0, 6);    // pre-printed label of the free column after FILTER (empty by default)
-const SESS_A4 = { head: [['#', 14], ['DATE', 26], ['PROJECT · SESSION', 70], ['ENLARGER/LENS', 44], ['CHEM', 32]],
-    cols: [['ROLL/NEG', 18], ['PRINT', 13], ['C', 10.5], ['M', 10.5], ['Y', 10.5], [XCOL, 12], ['TIME', 13], ['f/', 11], ['PAPER', 14], ['SIZE', 16], ['DODGE · BURN · NOTES', 57.5]] };
-const SESS_A5 = { head: [['#', 11], ['DATE', 21], ['PROJECT · SESSION', 48], ['ENLARGER/LENS', 26], ['CHEM', 18]],
-    cols: [['PRINT', 11], ['C', 8.5], ['M', 8.5], ['Y', 8.5], [XCOL, 10], ['TIME', 11], ['f/', 9], ['DODGE · BURN · NOTES', 57.5]] };
+const CO = U.col;
+const SESS_A4 = { head: [['#', 14], [CO.date, 26], [CO.projSess, 70], [CO.enlLens, 44], [CO.chem, 32]],
+    cols: [[CO.roll, 18], [CO.print, 13], ['C', 10.5], ['M', 10.5], ['Y', 10.5], [XCOL, 12], [CO.time, 13], [CO.aperture, 11], [CO.paperA4, 14], [CO.sizeA4, 16], [CO.dodge, 57.5]] };
+const SESS_A5 = { head: [['#', 11], [CO.date, 21], [CO.projSess, 48], [CO.enlLens, 26], [CO.chem, 18]],
+    cols: [[CO.print, 11], ['C', 8.5], ['M', 8.5], ['Y', 8.5], [XCOL, 10], [CO.time, 11], [CO.aperture, 9], [CO.dodge, 57.5]] };
+// setup table columns (logical A5 widths)
+const COLS_PROC = [[CO.abbrev, 13], [CO.developer, 28], [CO.stop, 20], [CO.fix, 26], [CO.wash, 15], [CO.notes, 22]];
+const COLS_ENL = [[CO.abbrev, 13], [CO.enlarger, 28], [CO.formatHead, 26], [CO.lens, 37], [CO.notes, 20]];
+const COLS_PAP = [[CO.abbrev, 12], [CO.paper, 52], [CO.size, 14], [CO.base, 11], [CO.process, 13], [CO.notes, 22]];
 const SESS = A4 ? SESS_A4 : SESS_A5;
 const FI = SESS.cols.findIndex(c => c[0] === 'C');     // first filter column
 // two-level column header: FILTER over C · M · Y
@@ -328,7 +335,7 @@ function colHeader(cols, scale, h1, h2, o = {}) {
   const r1 = [], r2 = [];
   cols.forEach(([t, w], i) => {
     const bL = i === 0 ? frame : (i === FI + 1 || i === FI + 2 ? faint : thin), bR = i === lastI ? frame : (i === FI || i === FI + 1 ? faint : thin);
-    if (i === FI) r1.push({ w: 3 * w * scale, text: 'FILTER', shade: true, align: AlignmentType.CENTER, valign: VerticalAlign.CENTER, size: o.size,
+    if (i === FI) r1.push({ w: 3 * w * scale, text: CO.filter, shade: true, align: AlignmentType.CENTER, valign: VerticalAlign.CENTER, size: o.size,
       borders: { top: o.top || frame, bottom: none, left: thin, right: thin } });
     else if (i === FI + 1 || i === FI + 2) { /* covered by FILTER */ }
     else r1.push({ w: w * scale, rowSpan: 2, text: t, runs: (!t && o.xHand) ? [run(o.xHand, { font: HAND, size: o.xHandSize, color: C.hand })] : undefined, shade: true, valign: VerticalAlign.CENTER, size: o.size,
@@ -349,19 +356,22 @@ function sessionBlock(n, blockH) {
   const last = SESS.cols.length - 1;
   rows.push({ h: body, cells: SESS.cols.map(([, w], i) => ({ w,
     borders: { top: thin, bottom: thin, left: i === 0 ? frame : (i === FI + 1 || i === FI + 2 ? faint : dotted), right: i === last ? frame : (i === FI || i === FI + 1 ? faint : dotted) } })) });
-  rows.push({ h: nH, cells: [{ w: CW, text: 'SESSION NOTES', shade: true }] });
+  rows.push({ h: nH, cells: [{ w: CW, text: CO.sessNotes, shade: true }] });
   return grid(rows);
 }
 
 // ---------------------------------------------------------------- pages
 function pageTitle() {
   newPage();
-  add({ el: new Paragraph({ alignment: AlignmentType.RIGHT, spacing: exact(9 * S, 1.5 * S), children: [run('DARKROOM LOG', { size: hp(34), bold: true, color: C.text, spacing: Math.round(60 * S) })] }), h: 10.5 * S });
-  add({ el: new Paragraph({ alignment: AlignmentType.RIGHT, spacing: exact(4.5 * S, 6 * S), children: [run('A PRINTING WORKBOOK', { size: hp(14), color: C.label, spacing: Math.round(40 * S) })] }), h: 10.5 * S });
-  add(grid([{ h: 9 * S, cells: [['BOOK NO.', 24], ['FROM', 30], ['TO', 30], ['DARKROOM', 40]].map(([t, w]) => ({ w: L(w), text: t, shade: true })) },
-    { h: 14 * S, cells: [{ w: CW, text: 'OWNER · IF FOUND, PLEASE RETURN TO', shade: true }] }]));
+  // optional small line above the title (German: LABORBUCH), set like the subtitle
+  if (U.pre) add({ el: new Paragraph({ alignment: AlignmentType.RIGHT, spacing: exact(4.5 * S, 0.5 * S), children: [run(U.pre, { size: hp(14), color: C.label, spacing: Math.round(40 * S) })] }), h: 5 * S });
+  add({ el: new Paragraph({ alignment: AlignmentType.RIGHT, spacing: exact(9 * S, 1.5 * S), children: [run(U.title, { size: hp(34), bold: true, color: C.text, spacing: Math.round(60 * S) })] }), h: 10.5 * S });
+  add({ el: new Paragraph({ alignment: AlignmentType.RIGHT, spacing: exact(4.5 * S, 6 * S), children: [run(U.subtitle, { size: hp(14), color: C.label, spacing: Math.round(40 * S) })] }), h: 10.5 * S });
+  const F = U.fields;
+  add(grid([{ h: 9 * S, cells: [[F.book, 24], [F.from, 30], [F.to, 30], [F.darkroom, 40]].map(([t, w]) => ({ w: L(w), text: t, shade: true })) },
+    { h: 14 * S, cells: [{ w: CW, text: F.owner, shade: true }] }]));
   // contents, bottom-aligned
-  const items = [title('CONTENTS')];
+  const items = [title(U.contents)];
   toc.forEach(([t, p, id, sub]) => {
     const lh = sub ? 4.8 * S : 6.0 * S;
     const kids = [run(t, { size: hp(sub ? 13 : 15), color: sub ? C.label : C.text }), new TextRun({ children: [new Tab()] }), run(String(p), { size: hp(sub ? 13 : 15), color: sub ? C.label : C.text })];
@@ -376,11 +386,11 @@ function pageTitle() {
 const SN = T.samples;
 function setupSnippets(o) {
   const E = o.expl ? T.howto.setupExpl : {};
-  add(snippet(T.labels.processes, [['ABBREV', 13], ['DEVELOPER', 28], ['STOP', 20], ['FIX / BLIX', 26], ['WASH', 15], ['NOTES', 22]], SN.processes, { ...o, expl: E.processes, headCenter: [0], center: [0] }));
+  add(snippet(T.labels.processes, COLS_PROC, SN.processes, { ...o, expl: E.processes, headCenter: [0], center: [0] }));
   add(spacer(o.gap));
-  add(snippet(T.labels.enlargers, [['ABBREV', 13], ['ENLARGER', 28], ['FORMAT / HEAD', 26], ['LENS', 37], ['NOTES', 20]], (o.ext ? SN.enlargersExt : SN.enlargers), { ...o, expl: E.enlargers, headCenter: [0], center: [0] }));
+  add(snippet(T.labels.enlargers, COLS_ENL, (o.ext ? SN.enlargersExt : SN.enlargers), { ...o, expl: E.enlargers, headCenter: [0], center: [0] }));
   add(spacer(o.gap));
-  add(snippet(T.labels.papers, [['ABBREV', 12], ['PAPER  make · name · grade · surface', 52], ['SIZE', 14], ['BASE', 11], ['PROCESS', 13], ['NOTES', 22]], (o.ext ? SN.papersExt : SN.papers), { ...o, expl: o.expl ? (A4 ? E.papersA4 : E.papersA5) : undefined, headCenter: [0], center: [0] }));
+  add(snippet(T.labels.papers, COLS_PAP, (o.ext ? SN.papersExt : SN.papers), { ...o, expl: o.expl ? (A4 ? E.papersA4 : E.papersA5) : undefined, headCenter: [0], center: [0] }));
 }
 function sessionSnippet(o) {
   const small = o.a5 || !A4;                 // A5 style: frame lines; A4 style: extra columns
@@ -405,27 +415,28 @@ function sessionSnippet(o) {
 function bullets(list, o) { list.forEach(b => add(textP(b, { size: o.size, lh: o.lh, color: C.text, indent: 2 * S, hang: 3.6 * S }))); }
 const subHead = t => add(textP(t, { size: hp(13), lh: 4.4 * S, color: C.text, bold: true, before: 2.2 * S }));
 
+// link to the extended how-to: short text + QR code
+function moreBlock(ts) {
+  const q = 16 * S, tw = CW - q - 3 * S, ms = { top: 0, bottom: 0, left: 0, right: 0 };
+  const head = run(T.howto.moreTitle + '  ', { size: hp(13), bold: true, color: C.text });
+  const kids = ONLINE ? T.howto.moreOnline.map(x => typeof x === 'object'
+    ? new ExternalHyperlink({ link: T.ext.howtoUrl, children: [new TextRun({ text: x.link, font: FONT, size: ts.size, color: '2B4C7E', underline: {} })] })
+    : run(x, { size: ts.size, color: C.text })) : [run(T.howto.morePrint, { size: ts.size, color: C.text })];
+  add(grid([{ h: q, cells: [
+    { w: tw, margins: ms, valign: VerticalAlign.CENTER, paras: [new Paragraph({ spacing: exact(ts.lh), children: [head, ...kids] })], borders: { top: none, bottom: none, left: none, right: none } },
+    { w: 3 * S, margins: ms, borders: { top: none, bottom: none, left: none, right: none } },
+    { w: q, margins: ms, runs: [qrImg(T.ext.howtoUrl, q)], borders: { top: none, bottom: none, left: none, right: none } }] }],
+    { borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none } }));
+}
 function pageHowto1() {
   newPage();
-  add(title('HOW TO USE THIS WORKBOOK', null, { bookmark: bm('howto') }));
+  add(title(U.howtoTitle, null, { bookmark: bm('howto') }));
   const ts = { size: hp(14), lh: 4.2 * S };
   add(textP(T.howto.intro, { ...ts, after: 2.5 * S }));
   setupSnippets({ rh: 5.2 * S, headH: 4.6 * S, gap: 2.5 * S, handSize: hp(20), expl: true });
   subHead(T.howto.workflowTitle);
   bullets(T.howto.workflow, ts);
   add(textP(T.howto.qr, { ...ts, before: 2 * S }));
-  // link to the extended how-to: short text + QR code
-  const q = 16 * S, tw = CW - q - 3 * S, ms = { top: 0, bottom: 0, left: 0, right: 0 };
-  const head = run(T.howto.moreTitle + '  ', { size: hp(13), bold: true, color: C.text });
-  const kids = ONLINE ? T.howto.moreOnline.map(x => typeof x === 'object'
-    ? new ExternalHyperlink({ link: T.ext.howtoUrl, children: [new TextRun({ text: x.link, font: FONT, size: ts.size, color: '2B4C7E', underline: {} })] })
-    : run(x, { size: ts.size, color: C.text })) : [run(T.howto.morePrint, { size: ts.size, color: C.text })];
-  add(spacer(2.5 * S));
-  add(grid([{ h: q, cells: [
-    { w: tw, margins: ms, valign: VerticalAlign.CENTER, paras: [new Paragraph({ spacing: exact(ts.lh), children: [head, ...kids] })], borders: { top: none, bottom: none, left: none, right: none } },
-    { w: 3 * S, margins: ms, borders: { top: none, bottom: none, left: none, right: none } },
-    { w: q, margins: ms, runs: [qrImg(T.ext.howtoUrl, q)], borders: { top: none, bottom: none, left: none, right: none } }] }],
-    { borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none } }));
   if (!ONLINE) { const imp = imprintItems(true); add(spacer(remaining() - itemsH(imp))); add(imp); }
 }
 function pageHowto2() {
@@ -440,38 +451,40 @@ function pageHowto2() {
   bullets(T.howto.bulletsShort.concat([XCOL === 'INT' ? T.howto.bulletINT : T.howto.bulletX], A4 ? [T.howto.bulletA4] : []), ts);
   subHead(T.howto.convTitle);
   add(textP(T.howto.convText, ts));
-  add(dottedLines(A4 ? 6 : 4, 7 * S));
+  add(dottedLines(A4 ? 5 : 3, 7 * S));
+  add(spacer(3 * S));
+  moreBlock(ts);
   if (ONLINE) { const imp = imprintItems(false); add(spacer(remaining() - itemsH(imp))); add(imp); }
 }
 function pageSetup() {
   newPage();
-  add(title('PROCESSES', 'chem · dilution · time · °C', { bookmark: bm('setup') }));
-  add(listTable([['ABBREV', 13], ['DEVELOPER', 28], ['STOP', 20], ['FIX / BLIX', 26], ['WASH', 15], ['NOTES', 22]], A4 ? 6 : 5, 14 * S, { headCenter: [0], center: [0] }));   // A4: one more process row
+  add(title(U.pages.processes[0], U.pages.processes[1], { bookmark: bm('setup') }));
+  add(listTable(COLS_PROC, A4 ? 6 : 5, 14 * S, { headCenter: [0], center: [0] }));   // A4: one more process row
   add(spacer(6 * S));
-  add(title('ENLARGERS & LENSES'));
+  add(title(U.pages.enlargers));
   const n = Math.floor((remaining() - 6 * S) / (8.5 * S)), rh = (remaining() - 6 * S) / n;   // stretch rows to the bottom
-  add(listTable([['ABBREV', 13], ['ENLARGER', 28], ['FORMAT / HEAD', 26], ['LENS', 37], ['NOTES', 20]], n, rh, { headCenter: [0] }));
+  add(listTable(COLS_ENL, n, rh, { headCenter: [0] }));
 }
 function pagePapers() {
   newPage();
-  add(title('PRINTING PAPERS', null, { bookmark: bm('papers') }));
+  add(title(U.pages.papers, null, { bookmark: bm('papers') }));
   const n = Math.floor((remaining() - 6 * S) / (10 * S)), rh = (remaining() - 6 * S) / n;
-  add(listTable([['ABBREV', 12], ['PAPER  make · name · grade · surface', 52], ['SIZE', 14], ['BASE', 11], ['PROCESS', 13], ['NOTES', 22]], n, rh, { headCenter: [0] }));
+  add(listTable(COLS_PAP, n, rh, { headCenter: [0] }));
 }
 function pageProjIdx() {
   newPage();
-  add(title('PROJECT INDEX', null, { bookmark: bm('projidx') }));
+  add(title(U.pages.projidx, null, { bookmark: bm('projidx') }));
   const n = Math.floor((remaining() - 6 * S) / (7.4 * S)), rh = (remaining() - 6 * S) / n;
-  add(listTable([['#', 10], ['PROJECT', 50], ['SESSIONS #', 32], ['NOTES', 32]], n, rh,
+  add(listTable([['#', 10], [CO.project, 50], [CO.sessionsNo, 32], [CO.notes, 32]], n, rh,
     { headCenter: [0], center: [0], fill: (r, i) => i === 0 ? String(r + 1) : undefined, cellColor: C.hint }));
 }
 var sessIdxStart = 0;
 function pageSessIdx(perPage, first) {
   newPage();
   const a = sessIdxStart; sessIdxStart += perPage;
-  add(title('SESSION INDEX', `sessions ${String(a + 1).padStart(3, '0')}–${String(a + perPage).padStart(3, '0')}`, { bookmark: first ? bm('sessidx') : undefined }));
+  add(title(U.pages.sessidx[0], `${U.pages.sessidx[1]} ${String(a + 1).padStart(3, '0')}–${String(a + perPage).padStart(3, '0')}`, { bookmark: first ? bm('sessidx') : undefined }));
   const rh = (remaining() - 6 * S) / perPage;
-  add(listTable([['#', 10], ['DATE', 21], ['SESSION TITLE · PROJECT', 45], ['NOTES', 48]], perPage, rh,
+  add(listTable([['#', 10], [CO.date, 21], [CO.sessTitle, 45], [CO.notes, 48]], perPage, rh,
     { headCenter: [0], center: [0], fill: (r, i) => i === 0 ? String(a + r + 1).padStart(3, '0') : undefined, cellColor: C.hint }));
 }
 function pageLines(t, sub, id) {
@@ -488,57 +501,51 @@ function pageSession(first) {
   add(sessionBlock(++sessNo, blockH)); add(spacer(gap)); add(sessionBlock(++sessNo, blockH));
 }
 // quick reference pages (content as in the personal edition)
-const fmt = v => v < 10 ? v.toFixed(1) : String(Math.round(v));
+const fmt = v => v < 10 ? dec(v.toFixed(1)) : String(Math.round(v));
+const Q = U.qr;
 function lineT(t, o = {}) { add(textP(t, { size: hp(14), lh: 4.8 * S, color: C.text, ...o })); }
 function pageQR1() {
   newPage();
-  add(title('QUICK REFERENCE', 'exposure', { bookmark: bm('qr1') }));
-  add(textP('f-stop timing (seconds) · 1 stop = ×2 · 1/2 = ×1.41 · 1/3 = ×1.26', { size: hp(12), lh: 5 * S, color: C.label, after: 1.5 * S }));
-  const ks = [-1, -1 / 2, -1 / 3, 0, 1 / 3, 1 / 2, 1], kl = ['-1', '-1/2', '-1/3', 'BASE', '+1/3', '+1/2', '+1'];
+  add(title(Q.title, Q.sub1, { bookmark: bm('qr1') }));
+  add(textP(Q.cap1, { size: hp(12), lh: 5 * S, color: C.label, after: 1.5 * S }));
+  const ks = [-1, -1 / 2, -1 / 3, 0, 1 / 3, 1 / 2, 1], kl = ['-1', '-1/2', '-1/3', Q.base, '+1/3', '+1/2', '+1'];
   const bases = [4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 60];
   add(listTable(kl.map((k, i) => [k, i === 3 ? 20 : 17.33]), bases.length, 5.5 * S, { headCenter: [0, 1, 2, 3, 4, 5, 6], center: [0, 1, 2, 3, 4, 5, 6],
     fill: (r, i) => fmt(bases[r] * Math.pow(2, ks[i])), cellSize: hp(14), cellColor: C.text }));
   add(spacer(6 * S));
-  lineT('Print size change (same aperture)', { bold: true });
-  ['  ▸ bigger image → same light spread over more area → more time', '  ▸ t new = t old × (new length ÷ old length)²',
-    '  ▸ length = long side of the projected image', '  ▸ e.g. 18 → 24 cm: (24÷18)² = 1.78 → 10 s becomes 18 s'].forEach(l => lineT(l));
+  lineT(Q.sizeHead, { bold: true });
+  Q.sizeLines.forEach(l => lineT(l));
   add(spacer(2.5 * S));
   const sizes = [['9×13', 13], ['10×15', 15], ['13×18', 18], ['18×24', 24], ['24×30', 30], ['30×40', 40]];
-  add(listTable([['FROM \\ TO', 19], ...sizes.map(([n]) => [n, 17.5])], sizes.length, 5.5 * S, { headCenter: [0, 1, 2, 3, 4, 5, 6], center: [0, 1, 2, 3, 4, 5, 6],
-    fill: (r, i) => i === 0 ? sizes[r][0] : (r === i - 1 ? '–' : Math.pow(sizes[i - 1][1] / sizes[r][1], 2).toFixed(2)), cellSize: hp(14), cellColor: C.text }));
+  add(listTable([[Q.fromTo, 19], ...sizes.map(([n]) => [n, 17.5])], sizes.length, 5.5 * S, { headCenter: [0, 1, 2, 3, 4, 5, 6], center: [0, 1, 2, 3, 4, 5, 6],
+    fill: (r, i) => i === 0 ? sizes[r][0] : (r === i - 1 ? '–' : dec(Math.pow(sizes[i - 1][1] / sizes[r][1], 2).toFixed(2))), cellSize: hp(14), cellColor: C.text }));
   add(spacer(4 * S)); fillLines(7 * S);
 }
 function pageQR2() {
   newPage();
-  add(title('QUICK REFERENCE', 'color · contrast', { bookmark: bm('qr2') }));
-  add(textP('RA-4 cast correction (Y/M filtration)', { size: hp(12), lh: 5 * S, color: C.label, after: 1.5 * S }));
-  const casts = [['yellow', 'add Y'], ['blue', 'remove Y'], ['magenta', 'add M'], ['green', 'remove M'], ['red', 'add Y + M'], ['cyan', 'remove Y + M']];
-  add(listTable([['PRINT HAS CAST', 55], ['CORRECTION', 69]], casts.length, 5.5 * S, { fill: (r, i) => casts[r][i], cellSize: hp(14), cellColor: C.text }));
+  add(title(Q.title, Q.sub2, { bookmark: bm('qr2') }));
+  add(textP(Q.cap2, { size: hp(12), lh: 5 * S, color: C.label, after: 1.5 * S }));
+  const casts = Q.casts;
+  add(listTable([[Q.castCols[0], 55], [Q.castCols[1], 69]], casts.length, 5.5 * S, { fill: (r, i) => casts[r][i], cellSize: hp(14), cellColor: C.text }));
   add(spacer(5 * S));
-  add(textP('B/W variable contrast on color head: more Y = softer · more M = harder', { size: hp(12), lh: 5 * S, color: C.label, after: 1.5 * S }));
+  add(textP(Q.cap3, { size: hp(12), lh: 5 * S, color: C.label, after: 1.5 * S }));
   const grades = ['00', '0', '1/2', '1', '1 1/2', '2', '2 1/2', '3', '3 1/2', '4', '4 1/2', '5'];
-  add(listTable([['GRADE', 20], ['Y', 20], ['M', 20], ['EXP. FACTOR', 26], ['MY HEAD / PAPER', 38]], grades.length, 6 * S,
+  add(listTable(Q.gradeCols.map((t, i) => [t, [20, 20, 20, 26, 38][i]]), grades.length, 6 * S,
     { headCenter: [0, 1, 2], center: [0], fill: (r, i) => i === 0 ? grades[r] : undefined, cellSize: hp(14), cellColor: C.text }));
   add(spacer(4 * S)); fillLines(7 * S);
 }
 function pageQR3() {
   newPage();
-  add(title('QUICK REFERENCE', 'zone system · printing', { bookmark: bm('qr3') }));
-  add(textP('Zone system: 11 tones from black to white, 1 stop apart', { size: hp(12), lh: 5 * S, color: C.label, after: 1.5 * S }));
-  const zones = [['0', 'max. black of the paper', 'deepest shadows, no detail'], ['I', 'near black, no texture', 'first step above max. black'],
-    ['II', 'first hint of texture', 'deep shadows'], ['III', 'dark, full texture', 'dark materials, shadow detail'], ['IV', 'dark mid-tone', 'dark foliage, open shade'],
-    ['V', 'middle grey (18 %, grey card)', 'dry old asphalt, weathered wood'], ['VI', 'light mid-tone', 'light skin in sun, light stone'],
-    ['VII', 'light, full texture', 'very light skin, light grey'], ['VIII', 'white with texture', 'textured snow, light fabric'],
-    ['IX', 'white, barely tone', 'snow in flat sun, glare'], ['X', 'paper white', 'light sources, specular reflections']];
+  add(title(Q.title, Q.sub3, { bookmark: bm('qr3') }));
+  add(textP(Q.cap4, { size: hp(12), lh: 5 * S, color: C.label, after: 1.5 * S }));
+  const zones = Q.zones;
   const grey = z => { const Lz = z * 10, Y = Lz > 8 ? Math.pow((Lz + 16) / 116, 3) : Lz / 903.3;
     const v = Y <= 0.0031308 ? 12.92 * Y : 1.055 * Math.pow(Y, 1 / 2.4) - 0.055; const h = Math.round(v * 255).toString(16).padStart(2, '0').toUpperCase(); return h + h + h; };
-  add(listTable([['', 6.5], ['ZONE', 12], ['PRINT VALUE', 48], ['TYPICAL SUBJECT', 57.5]], zones.length, 6 * S,
+  add(listTable([['', 6.5], [Q.zoneCols[0], 12], [Q.zoneCols[1], 48], [Q.zoneCols[2], 57.5]], zones.length, 6 * S,
     { headCenter: [0, 1], center: [1], fill: (r, i) => i === 0 ? undefined : zones[r][i - 1], fillColor: (r, i) => i === 0 ? grey(r) : undefined, cellSize: hp(13), cellColor: C.text }));
   add(spacer(5 * S));
-  lineT('Printing rules of thumb', { bold: true });
-  ['  ▸ time sets the highlights → find time for zone VIII', '    (first texture in the whites) on the test strip',
-    '  ▸ contrast sets the shadows → pick grade so zone II/III', '    keep detail, then re-check time',
-    '  ▸ prints dry darker (esp. FB) → judge wet prints lighter'].forEach(l => lineT(l));
+  lineT(Q.rulesHead, { bold: true });
+  Q.rules.forEach(l => lineT(l));
   add(spacer(3 * S)); fillLines(7 * S);
 }
 
@@ -548,8 +555,8 @@ function buildHowtoExtended() {
   const H = (t, o = {}) => add(textP(t, { size: hp(20), lh: 6 * S, color: C.text, bold: true, before: o.before === undefined ? 3 * S : o.before, after: 1 * S }));
   fitPage(() => {
     newPage();
-    add({ el: new Paragraph({ spacing: exact(8 * S, 1 * S), children: [run('DARKROOM LOG', { size: hp(30), bold: true, color: C.text, spacing: 40 })] }), h: 9 * S });
-    add(textP('How to use the workbook – extended guide', { size: hp(18), lh: 5.5 * S, color: C.label, after: 3 * S }));
+    add({ el: new Paragraph({ spacing: exact(8 * S, 1 * S), children: [run(U.ext.title, { size: hp(30), bold: true, color: C.text, spacing: 40 })] }), h: 9 * S });
+    add(textP(U.ext.subtitle, { size: hp(18), lh: 5.5 * S, color: C.label, after: 3 * S }));
     T.ext.intro.forEach(p => {
       if (!Array.isArray(p)) return add(textP(p, { ...ts(), after: 1.5 * S }));
       const o = ts(), kids = p.map(x => typeof x === 'object'   // note: strings have a built-in .link()
@@ -557,20 +564,20 @@ function buildHowtoExtended() {
         : run(x, { size: o.size, color: C.text }));
       add(textP(kids, { ...o, plain: p.map(x => typeof x === 'object' ? x.link : x).join(''), after: 1.5 * S }));
     });
-    H('What is inside');
+    H(U.ext.inside);
     T.ext.contents.forEach(b => add(textP('▸ ' + b, { ...ts(), indent: 2, hang: 4.5 })));
-    H('Setup tables');
+    H(U.ext.setup);
     add(textP(T.ext.setup, { ...ts(), after: 1.5 * S }));
     setupSnippets({ rh: 6 * S, headH: 5 * S, gap: 2 * S, handSize: hp(22), ext: true });
   });
   fitPage(() => {
     newPage();
-    H('The session log', { before: 0 });
+    H(U.ext.session, { before: 0 });
     T.ext.session.forEach(p => add(textP(p, { ...ts(), after: 1.2 * S })));
     sessionSnippet({ rh: 6 * S, headH: 5 * S, handSize: hp(22), a5: true });
-    H('Notation – one way to do it');
+    H(U.ext.notation);
     T.ext.ids.forEach(b => add(textP('▸ ' + b, { ...ts(), indent: 2, hang: 4.5 })));
-    H('Tips');
+    H(U.ext.tips);
     T.ext.tips.forEach(b => add(textP('▸ ' + b, { ...ts(), indent: 2, hang: 4.5 })));
   }, 1.15);
 }
@@ -580,9 +587,7 @@ function buildSamples() {
   newPage();
   const cap = t => add(textP(t, { size: hp(16), lh: 6 * S, color: C.text, bold: true, before: 4 * S, after: 1 * S }));
   const o = { rh: 5.2 * S, headH: 4.6 * S, handSize: hp(20) };
-  const P = [['ABBREV', 13], ['DEVELOPER', 28], ['STOP', 20], ['FIX / BLIX', 26], ['WASH', 15], ['NOTES', 22]];
-  const E = [['ABBREV', 13], ['ENLARGER', 28], ['FORMAT / HEAD', 26], ['LENS', 37], ['NOTES', 20]];
-  const Pa = [['ABBREV', 12], ['PAPER  make · name · grade · surface', 52], ['SIZE', 14], ['BASE', 11], ['PROCESS', 13], ['NOTES', 22]];
+  const P = COLS_PROC, E = COLS_ENL, Pa = COLS_PAP;
   if (!A4) {
     cap('#1  Processes (all versions)'); add(snippet(null, P, SN.processes, { ...o, headCenter: [0], center: [0] }));
     cap('#2  Enlargers & lenses (workbooks)'); add(snippet(null, E, SN.enlargers, { ...o, headCenter: [0], center: [0] }));
@@ -615,12 +620,12 @@ else {
       case 'papers': pagePapers(); break;
       case 'projidx': pageProjIdx(); break;
       case 'sessidx': pageSessIdx(RING ? 24 : 25, plan[i - 1][0] !== 'sessidx'); break;
-      case 'learn': pageLines('MY DARKROOM LEARNINGS & NOTES', 'papers · tools · techniques · experience', plan[i - 1][0] !== 'learn' ? bm('learn') : undefined); break;
+      case 'learn': pageLines(U.pages.learn[0], U.pages.learn[1], plan[i - 1][0] !== 'learn' ? bm('learn') : undefined); break;
       case 'session': pageSession(plan[i - 1][0] !== 'session'); break;
       case 'qr1': pageQR1(); break;
       case 'qr2': pageQR2(); break;
       case 'qr3': pageQR3(); break;
-      case 'notes': pageLines('GENERAL KNOWLEDGE NOTES', 'chemistry · light · color · contrast · materials', plan[i - 1][0] !== 'notes' ? bm('notes') : undefined); break;
+      case 'notes': pageLines(U.pages.notes[0], U.pages.notes[1], plan[i - 1][0] !== 'notes' ? bm('notes') : undefined); break;
     }
   });
 }
@@ -657,13 +662,13 @@ if (cfg.kind === 'howto') {
   sections.push({ properties: pageProps(mainMargins), footers: { default: licFooter(), even: licFooter() }, children: content });
 } else {
   const theme = cfg.cover || 'light';         // online versions: cover theme light | dark | red
-  if (ONLINE) sections.push(coverSection(path.join(cfg.covers, `cover_${cfg.size}_online_${theme}_front.jpg`)));
+  if (ONLINE) sections.push(coverSection(path.join(cfg.covers, `cover_${LANG === 'en' ? '' : LANG + '_'}${cfg.size}_online_${theme}_front.jpg`)));
   sections.push({ properties: { ...pageProps(mainMargins), page: { ...pageProps(mainMargins).page, pageNumbers: { start: 1 } } },
     footers: { default: pnFooter(AlignmentType.RIGHT), even: pnFooter(AlignmentType.LEFT) }, children: content });
-  if (ONLINE) sections.push(coverSection(path.join(cfg.covers, `cover_${cfg.size}_online_${theme}_back.jpg`)));
+  if (ONLINE) sections.push(coverSection(path.join(cfg.covers, `cover_${LANG === 'en' ? '' : LANG + '_'}${cfg.size}_online_${theme}_back.jpg`)));
 }
 const doc = new Document({
-  creator: 'Darkroom Log', title: 'Darkroom Log – A Printing Workbook',
+  creator: U.docTitle.split(' – ')[0], title: U.docTitle,
   evenAndOddHeaderAndFooters: true,
   styles: { default: { document: { run: { font: FONT, size: hp(16) } } } },
   sections,

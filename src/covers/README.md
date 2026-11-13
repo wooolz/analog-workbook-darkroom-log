@@ -4,7 +4,7 @@
 
 ## Output
 
-48 JPG files in `dist/covers/` (relative to the repository root), each in a **dark**, a **light** and a **red** (safelight) theme.
+48 JPG files per language in `dist/covers/` (relative to the repository root), each in a **dark**, a **light** and a **red** (safelight) theme. Languages: English (*Darkroom Log*) and German (*Laborbuch Dunkelkammer*), 96 files in total. English file names have no language tag; German file names start with `cover_de_` (e.g. `cover_de_A5_print_dark_front.jpg`).
 
 **Single front and back files** (24): for ring binding (print, 3 mm bleed) and for the online versions (no bleed).
 
@@ -66,10 +66,11 @@ All coordinates are in **millimetres on an A5 page including 3 mm bleed** (154 �
 | Strip tones, dark theme | `DARK` (first definition) |
 | Strip tones, light theme (8 s band at #999999, 16 steps apart) | the second `DARK = [...]` line before `FRONT_LIGHT` |
 | C/M/Y values shown on the color head | `head()`: `('C', '000'), ('M', '065'), ('Y', '040')` |
-| Title and subtitle on the front | `title()` |
-| Back text (centered block) | `para = [...]` in `back()`: one list entry per line, `""` for an empty line, `&amp;` instead of `&` |
-| Line at the bottom of the back (pages · size · binding) | `backs = {...}` |
-| Edition and license line | in `back()` |
+| All cover texts per language: title, subtitle, back text, page/binding words, edition line | `TEXT = {...}` (`en`, `de`) |
+| Title layout on the front (small pre-title, large title, subtitle) | `title()` |
+| Back text (centered block) | `para` in `TEXT`: one list entry per line, `""` for an empty line, `&amp;` instead of `&` |
+| Line at the bottom of the back (pages · size · binding) | `pages`, `bind` in `TEXT`; page counts in `backs` and `SPREADS` (`n`) |
+| Edition and license line | `edition` in `TEXT` |
 | Background and text colors, dark theme | `BG`, `TXT`, and the grey steps `G1`–`G5` |
 
 ### How the light theme is made
@@ -87,9 +88,11 @@ To change the light theme, edit `invert()` and `light()`.
 
 The red theme keeps the dark background and turns every grey into a safelight red of similar lightness: red = grey × 1.3, green = grey × 0.2, blue = grey × 0.14 (function `red()`). The pencil note on the test strip ("gr 3 · f/8", grey `#717171`) is set brighter in this theme.
 
-## Variants and back texts
+## Languages
 
-The line at the bottom of the back names pages, size and binding: for the single files it is set in `backs`, for the one-piece covers in `SPREADS` (`pages`).
+All texts live in the `TEXT` dictionary, one entry per language. A title with a `pre` part (German: "LABORBUCH") is set in three lines: the pre-title small like the subtitle, the title large, then the subtitle, all right-aligned on the front and centred on the back. To add a language, add an entry to `TEXT` and its code to `LANGS`.
+
+To build only one language, pass its file-name prefix, e.g. `python3 src/covers/make_covers.py cover_de_`.
 
 ## License
 
